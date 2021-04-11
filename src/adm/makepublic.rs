@@ -1,7 +1,7 @@
 use super::result::Error;
 use crate::models::Photo;
 use crate::DbOpt;
-use diesel::pg::PgConnection;
+use diesel::sqlite::SqliteConnection;
 use diesel::prelude::*;
 use diesel::result::Error as DieselError;
 use diesel::update;
@@ -72,7 +72,7 @@ impl Makepublic {
     }
 }
 
-pub fn one(db: &PgConnection, tpath: &str) -> Result<(), Error> {
+pub fn one(db: &SqliteConnection, tpath: &str) -> Result<(), Error> {
     use crate::schema::photos::dsl::*;
     match update(photos.filter(path.eq(&tpath)))
         .set(is_public.eq(true))
@@ -90,7 +90,7 @@ pub fn one(db: &PgConnection, tpath: &str) -> Result<(), Error> {
 }
 
 pub fn by_file_list<In: BufRead + Sized>(
-    db: &PgConnection,
+    db: &SqliteConnection,
     list: In,
 ) -> Result<(), Error> {
     for line in list.lines() {

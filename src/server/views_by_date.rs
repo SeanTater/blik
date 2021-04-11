@@ -377,7 +377,7 @@ pub struct FromParam {
     from: i32,
 }
 
-pub fn date_of_img(db: &PgConnection, photo_id: i32) -> Option<NaiveDateTime> {
+pub fn date_of_img(db: &SqliteConnection, photo_id: i32) -> Option<NaiveDateTime> {
     use crate::schema::photos::dsl::{date, photos};
     photos.find(photo_id).select(date).first(db).unwrap_or(None)
 }

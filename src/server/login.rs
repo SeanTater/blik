@@ -48,7 +48,7 @@ pub struct LoginForm {
 
 impl LoginForm {
     /// Retur user if and only if password is correct for user.
-    pub fn validate(&self, db: &PgConnection) -> Option<String> {
+    pub fn validate(&self, db: &SqliteConnection) -> Option<String> {
         use crate::schema::users::dsl::*;
         if let Ok(hash) = users
             .filter(username.eq(&self.user))

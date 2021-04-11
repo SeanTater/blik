@@ -1,12 +1,12 @@
 use super::result::Error;
-use diesel::pg::PgConnection;
+use diesel::sqlite::SqliteConnection;
 use diesel::prelude::*;
 use diesel::{insert_into, update};
 use djangohashers::make_password;
 use rand::{thread_rng, Rng};
 use std::iter::Iterator;
 
-pub fn list(db: &PgConnection) -> Result<(), Error> {
+pub fn list(db: &SqliteConnection) -> Result<(), Error> {
     use crate::schema::users::dsl::*;
     println!(
         "Existing users: {:?}.",
@@ -15,7 +15,7 @@ pub fn list(db: &PgConnection) -> Result<(), Error> {
     Ok(())
 }
 
-pub fn passwd(db: &PgConnection, uname: &str) -> Result<(), Error> {
+pub fn passwd(db: &SqliteConnection, uname: &str) -> Result<(), Error> {
     let pword = random_password(14);
     let hashword = make_password(&pword);
     use crate::schema::users::dsl::*;

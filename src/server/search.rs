@@ -9,7 +9,7 @@ use crate::schema::photo_tags::dsl as pt;
 use crate::schema::photos::dsl as p;
 use crate::templates;
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
-use diesel::pg::PgConnection;
+use diesel::sqlite::SqliteConnection;
 use diesel::prelude::*;
 use log::warn;
 use warp::http::response::Builder;
@@ -102,7 +102,7 @@ pub struct Filter<T> {
 }
 
 impl<T: Facet> Filter<T> {
-    fn load(val: &str, db: &PgConnection) -> Option<Filter<T>> {
+    fn load(val: &str, db: &SqliteConnection) -> Option<Filter<T>> {
         let (inc, slug) = match val.strip_prefix('!') {
             Some(val) => (false, val),
             None => (true, val),
@@ -120,7 +120,7 @@ impl<T: Facet> Filter<T> {
 impl SearchQuery {
     fn load(
         query: Vec<(String, String)>,
-        db: &PgConnection,
+        db: &SqliteConnection,
     ) -> Result<Self, Error> {
         let mut result = SearchQuery::default();
         let (mut s_d, mut s_t, mut u_d, mut u_t) = (None, None, None, None);
@@ -217,7 +217,7 @@ impl QueryDateTime {
         let until_midnight = NaiveTime::from_hms_milli(23, 59, 59, 999);
         QueryDateTime::new(datetime_from_parts(date, time, until_midnight))
     }
-    fn from_img(photo_id: i32, db: &PgConnection) -> Result<Self, Error> {
+    fn from_img(photo_id: i32, db: &SqliteConnection) -> Result<Self, Error> {
         Ok(QueryDateTime::new(
             p::photos
                 .select(p::date)

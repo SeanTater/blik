@@ -98,7 +98,7 @@ enum ImgIdentifier {
 }
 
 impl ImgIdentifier {
-    fn load(&self, db: &PgConnection) -> Result<Option<Photo>, DbError> {
+    fn load(&self, db: &SqliteConnection) -> Result<Option<Photo>, DbError> {
         use crate::schema::photos::dsl as p;
         match &self {
             ImgIdentifier::Id(ref id) => {

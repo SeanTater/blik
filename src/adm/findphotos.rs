@@ -4,7 +4,7 @@ use crate::myexif::ExifData;
 use crate::photosdir::PhotosDir;
 use crate::{DbOpt, DirOpt};
 use diesel::insert_into;
-use diesel::pg::PgConnection;
+use diesel::sqlite::SqliteConnection;
 use diesel::prelude::*;
 use log::{debug, info, warn};
 use std::path::Path;
@@ -42,7 +42,7 @@ impl Findphotos {
 }
 
 fn crawl(
-    db: &PgConnection,
+    db: &SqliteConnection,
     photos: &PhotosDir,
     only_in: &Path,
 ) -> Result<(), Error> {
@@ -57,7 +57,7 @@ fn crawl(
 }
 
 fn save_photo(
-    db: &PgConnection,
+    db: &SqliteConnection,
     file_path: &str,
     exif: &ExifData,
 ) -> Result<(), Error> {
@@ -118,7 +118,7 @@ fn save_photo(
 }
 
 fn find_camera(
-    db: &PgConnection,
+    db: &SqliteConnection,
     exif: &ExifData,
 ) -> Result<Option<Camera>, Error> {
     if let Some((make, model)) = exif.camera() {

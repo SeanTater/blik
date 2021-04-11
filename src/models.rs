@@ -11,7 +11,7 @@ use crate::schema::places::dsl as l;
 use crate::schema::positions::dsl as pos;
 use crate::schema::tags::dsl as t;
 use chrono::naive::NaiveDateTime;
-use diesel::pg::{Pg, PgConnection};
+use diesel::sqlite::{Sqlite, SqliteConnection};
 use diesel::prelude::*;
 use diesel::result::Error;
 use diesel::sql_types::Integer;
@@ -51,7 +51,7 @@ impl Photo {
     }
 
     #[allow(dead_code)]
-    pub fn query<'a>(auth: bool) -> photos::BoxedQuery<'a, Pg> {
+    pub fn query<'a>(auth: bool) -> photos::BoxedQuery<'a, Sqlite> {
         let result = p::photos
             .filter(p::path.not_like("%.CR2"))
             .filter(p::path.not_like("%.dng"))
@@ -64,7 +64,7 @@ impl Photo {
     }
 
     pub fn update_by_path(
-        db: &PgConnection,
+        db: &SqliteConnection,
         file_path: &str,
         newwidth: i32,
         newheight: i32,
@@ -109,7 +109,7 @@ impl Photo {
     }
 
     pub fn create_or_set_basics(
-        db: &PgConnection,
+        db: &SqliteConnection,
         file_path: &str,
         newwidth: i32,
         newheight: i32,
@@ -138,7 +138,7 @@ impl Photo {
 
     pub fn load_people(
         &self,
-        db: &PgConnection,
+        db: &SqliteConnection,
     ) -> Result<Vec<Person>, Error> {
         h::people
             .filter(
@@ -151,7 +151,7 @@ impl Photo {
             .load(db)
     }
 
-    pub fn load_places(&self, db: &PgConnection) -> Result<Vec<Place>, Error> {
+    pub fn load_places(&self, db: &SqliteConnection) -> Result<Vec<Place>, Error> {
         l::places
             .filter(
                 l::id.eq_any(
@@ -163,7 +163,7 @@ impl Photo {
             .order(l::osm_level.desc().nulls_first())
             .load(db)
     }
-    pub fn load_tags(&self, db: &PgConnection) -> Result<Vec<Tag>, Error> {
+    pub fn load_tags(&self, db: &SqliteConnection) -> Result<Vec<Tag>, Error> {
         t::tags
             .filter(
                 t::id.eq_any(
@@ -175,7 +175,7 @@ impl Photo {
             .load(db)
     }
 
-    pub fn load_position(&self, db: &PgConnection) -> Option<Coord> {
+    pub fn load_position(&self, db: &SqliteConnection) -> Option<Coord> {
         match pos::positions
             .filter(pos::photo_id.eq(self.id))
             .select((pos::latitude, pos::longitude))
@@ -189,12 +189,12 @@ impl Photo {
             }
         }
     }
-    pub fn load_attribution(&self, db: &PgConnection) -> Option<String> {
+    pub fn load_attribution(&self, db: &SqliteConnection) -> Option<String> {
         self.attribution_id.and_then(|i| {
             a::attributions.find(i).select(a::name).first(db).ok()
         })
     }
-    pub fn load_camera(&self, db: &PgConnection) -> Option<Camera> {
+    pub fn load_camera(&self, db: &SqliteConnection) -> Option<Camera> {
         self.camera_id
             .and_then(|i| c::cameras.find(i).first(db).ok())
     }
@@ -232,7 +232,7 @@ impl Photo {
 }
 
 pub trait Facet {
-    fn by_slug(slug: &str, db: &PgConnection) -> Result<Self, Error>
+    fn by_slug(slug: &str, db: &SqliteConnection) -> Result<Self, Error>
     where
         Self: Sized;
 }
@@ -245,7 +245,7 @@ pub struct Tag {
 }
 
 impl Facet for Tag {
-    fn by_slug(slug: &str, db: &PgConnection) -> Result<Tag, Error> {
+    fn by_slug(slug: &str, db: &SqliteConnection) -> Result<Tag, Error> {
         t::tags.filter(t::slug.eq(slug)).first(db)
     }
 }
@@ -266,7 +266,7 @@ pub struct Person {
 
 impl Person {
     pub fn get_or_create_name(
-        db: &PgConnection,
+        db: &SqliteConnection,
         name: &str,
     ) -> Result<Person, Error> {
         h::people
@@ -284,7 +284,7 @@ impl Person {
 }
 
 impl Facet for Person {
-    fn by_slug(slug: &str, db: &PgConnection) -> Result<Person, Error> {
+    fn by_slug(slug: &str, db: &SqliteConnection) -> Result<Person, Error> {
         h::people.filter(h::slug.eq(slug)).first(db)
     }
 }
@@ -306,7 +306,7 @@ pub struct Place {
 }
 
 impl Facet for Place {
-    fn by_slug(slug: &str, db: &PgConnection) -> Result<Place, Error> {
+    fn by_slug(slug: &str, db: &SqliteConnection) -> Result<Place, Error> {
         l::places.filter(l::slug.eq(slug)).first(db)
     }
 }
@@ -327,7 +327,7 @@ pub struct Camera {
 
 impl Camera {
     pub fn get_or_create(
-        db: &PgConnection,
+        db: &SqliteConnection,
         make: &str,
         modl: &str,
     ) -> Result<Camera, Error> {
@@ -352,7 +352,7 @@ pub struct Coord {
     pub y: f64,
 }
 
-impl Queryable<(Integer, Integer), Pg> for Coord {
+impl Queryable<(Integer, Integer), Sqlite> for Coord {
     type Row = (i32, i32);
 
     fn build(row: Self::Row) -> Self {

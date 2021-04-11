@@ -4,11 +4,11 @@ use crate::schema::photos::dsl::photos;
 use crate::schema::places::dsl::places;
 use crate::schema::tags::dsl::tags;
 use diesel::expression::dsl::{count_star, sql};
-use diesel::pg::PgConnection;
+use diesel::sqlite::SqliteConnection;
 use diesel::prelude::*;
 use diesel::sql_types::{BigInt, Double, Nullable};
 
-pub fn show_stats(db: &PgConnection) -> Result<(), Error> {
+pub fn show_stats(db: &SqliteConnection) -> Result<(), Error> {
     println!(
         "There are {} photos in total.",
         photos.select(count_star()).first::<i64>(db)?,

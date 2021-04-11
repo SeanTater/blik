@@ -40,7 +40,7 @@ fn rotate(context: Context, form: RotateForm) -> Response {
     info!("Should rotate #{} by {}", form.image, form.angle);
     use crate::schema::photos::dsl::photos;
     let c = context.db().unwrap();
-    let c: &PgConnection = &c;
+    let c: &SqliteConnection = &c;
     if let Ok(mut image) = photos.find(form.image).first::<Photo>(c) {
         let newvalue = (360 + image.rotation + form.angle) % 360;
         info!("Rotation was {}, setting to {}", image.rotation, newvalue);

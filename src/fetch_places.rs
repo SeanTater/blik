@@ -1,4 +1,4 @@
-use crate::dbopt::PgPool;
+use crate::dbopt::SqlitePool;
 use crate::models::{Coord, Place};
 use crate::DbOpt;
 use diesel::prelude::*;
@@ -68,7 +68,7 @@ pub struct OverpassOpt {
 impl OverpassOpt {
     pub async fn update_image_places(
         &self,
-        db: &PgPool,
+        db: &SqlitePool,
         image: i32,
     ) -> Result<(), Error> {
         use crate::schema::positions::dsl::*;
@@ -272,7 +272,7 @@ fn tag_str<'a>(tags: &'a Value, name: &str) -> Option<&'a str> {
 }
 
 fn get_or_create_place(
-    c: &PgConnection,
+    c: &SqliteConnection,
     t_osm_id: i64,
     name: &str,
     level: i16,
