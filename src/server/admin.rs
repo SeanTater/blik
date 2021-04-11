@@ -75,7 +75,7 @@ async fn set_tag(context: Context, form: TagForm) -> WarpResult {
     use crate::models::{PhotoTag, Tag};
     let tag = {
         use crate::schema::tags::dsl::*;
-        tags.filter(tag_name.ilike(&form.tag))
+        tags.filter(tag_name.like(&form.tag))
             .first::<Tag>(&c)
             .or_else(|_| {
                 diesel::insert_into(tags)

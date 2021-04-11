@@ -270,7 +270,7 @@ impl Person {
         name: &str,
     ) -> Result<Person, Error> {
         h::people
-            .filter(h::person_name.ilike(name))
+            .filter(h::person_name.like(name))
             .first(db)
             .or_else(|_| {
                 diesel::insert_into(h::people)

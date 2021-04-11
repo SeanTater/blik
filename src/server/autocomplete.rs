@@ -36,7 +36,7 @@ pub fn auto_complete_any(context: Context, query: AcQ) -> impl Reply {
 
     let query = t::tags
         .select((t::tag_name, t::slug))
-        .filter(t::tag_name.ilike(&qs))
+        .filter(t::tag_name.like(&qs))
         .into_boxed();
     let query = if context.is_authorized() {
         query
@@ -58,7 +58,7 @@ pub fn auto_complete_any(context: Context, query: AcQ) -> impl Reply {
     tags.extend({
         let query = h::people
             .select((h::person_name, h::slug))
-            .filter(h::person_name.ilike(&qs))
+            .filter(h::person_name.like(&qs))
             .into_boxed();
         let query =
             if context.is_authorized() {
@@ -83,7 +83,7 @@ pub fn auto_complete_any(context: Context, query: AcQ) -> impl Reply {
     tags.extend({
         let query = l::places
             .select((l::place_name, l::slug))
-            .filter(l::place_name.ilike(&qs))
+            .filter(l::place_name.like(&qs))
             .into_boxed();
         let query =
             if context.is_authorized() {
@@ -113,7 +113,7 @@ pub fn auto_complete_tag(context: Context, query: AcQ) -> impl Reply {
     use crate::schema::tags::dsl::{tag_name, tags};
     let q = tags
         .select(tag_name)
-        .filter(tag_name.ilike(query.q + "%"))
+        .filter(tag_name.like(query.q + "%"))
         .order(tag_name)
         .limit(10);
     reply::json(&q.load::<String>(&context.db().unwrap()).unwrap())
@@ -123,7 +123,7 @@ pub fn auto_complete_person(context: Context, query: AcQ) -> impl Reply {
     use crate::schema::people::dsl::{people, person_name};
     let q = people
         .select(person_name)
-        .filter(person_name.ilike(query.q + "%"))
+        .filter(person_name.like(query.q + "%"))
         .order(person_name)
         .limit(10);
     reply::json(&q.load::<String>(&context.db().unwrap()).unwrap())
