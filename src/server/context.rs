@@ -1,5 +1,5 @@
 use super::Args;
-use crate::dbopt::{PgPool, PooledPg};
+use crate::dbopt::{SqlitePool, PooledSqlite};
 use crate::fetch_places::OverpassOpt;
 use crate::photosdir::PhotosDir;
 use diesel::r2d2::{Pool, PooledConnection};
@@ -45,7 +45,7 @@ pub fn create_session_filter(args: &Args) -> ContextFilter {
 // Does _not_ derive debug, copy or clone, since it contains the jwt
 // secret and some connection pools.
 struct GlobalContext {
-    db_pool: PgPool,
+    db_pool: SqlitePool,
     photosdir: PhotosDir,
     memcache_pool: MemcachePool,
     jwt_secret: String,
@@ -120,10 +120,10 @@ pub struct Context {
 }
 
 impl Context {
-    pub fn db(&self) -> Result<PooledPg, Error> {
+    pub fn db(&self) -> Result<PooledSqlite, Error> {
         self.global.db_pool.get()
     }
-    pub fn db_pool(&self) -> PgPool {
+    pub fn db_pool(&self) -> SqlitePool {
         self.global.db_pool.clone()
     }
     pub fn authorized_user(&self) -> Option<&str> {

@@ -36,9 +36,9 @@ impl Args {
         let timer = Instant::now();
         let cache = Client::connect(self.cache.memcached_url.as_ref())?;
         let size = SizeTag::Small;
-        let (mut n, mut n_stored) = (0, 0);
+        let (mut n, mut n_stored) = (0usize, 0usize);
         let photos = Photo::query(true)
-            .order((is_public.desc(), date.desc().nulls_last()))
+            .order((is_public.desc(), date.desc()))
             .load::<Photo>(&self.db.connect()?)?;
         let no_expire = 0;
         let pd = PhotosDir::new(&self.photos.photos_dir);

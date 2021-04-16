@@ -71,7 +71,7 @@ impl Photo {
         exifdate: Option<NaiveDateTime>,
         camera: &Option<Camera>,
     ) -> Result<Option<Modification<Photo>>, Error> {
-        if let Some(mut pic) = p::photos
+        if let Some(pic) = p::photos
             .filter(p::path.eq(&file_path.to_string()))
             .first::<Photo>(db)
             .optional()?
@@ -80,24 +80,27 @@ impl Photo {
             // TODO Merge updates to one update statement!
             if pic.width != newwidth || pic.height != newheight {
                 change = true;
-                pic = diesel::update(p::photos.find(pic.id))
+                diesel::update(p::photos.find(pic.id))
                     .set((p::width.eq(newwidth), p::height.eq(newheight)))
-                    .get_result::<Photo>(db)?;
+                    .execute(db)?;
             }
             if exifdate.is_some() && exifdate != pic.date {
                 change = true;
-                pic = diesel::update(p::photos.find(pic.id))
+                diesel::update(p::photos.find(pic.id))
                     .set(p::date.eq(exifdate))
-                    .get_result::<Photo>(db)?;
+                    .execute(db)?;
             }
             if let Some(ref camera) = *camera {
                 if pic.camera_id != Some(camera.id) {
                     change = true;
-                    pic = diesel::update(p::photos.find(pic.id))
+                    diesel::update(p::photos.find(pic.id))
                         .set(p::camera_id.eq(camera.id))
-                        .get_result::<Photo>(db)?;
+                        .execute(db)?;
                 }
             }
+            let pic = p::photos
+                .filter(p::path.eq(&file_path.to_string()))
+                .first::<Photo>(db)?;
             Ok(Some(if change {
                 Modification::Updated(pic)
             } else {
@@ -122,7 +125,7 @@ impl Photo {
         )? {
             Ok(result)
         } else {
-            let pic = diesel::insert_into(p::photos)
+            diesel::insert_into(p::photos)
                 .values((
                     p::path.eq(file_path),
                     p::date.eq(exifdate),
@@ -131,7 +134,10 @@ impl Photo {
                     p::height.eq(newheight),
                     p::camera_id.eq(camera.map(|c| c.id)),
                 ))
-                .get_result::<Photo>(db)?;
+                .execute(db)?;
+            let pic = p::photos
+                .filter(p::path.eq(&file_path.to_string()))
+                .first::<Photo>(db)?;
             Ok(Modification::Created(pic))
         }
     }
@@ -160,7 +166,7 @@ impl Photo {
                         .filter(pl::photo_id.eq(self.id)),
                 ),
             )
-            .order(l::osm_level.desc().nulls_first())
+            .order(l::osm_level.desc())
             .load(db)
     }
     pub fn load_tags(&self, db: &SqliteConnection) -> Result<Vec<Tag>, Error> {
@@ -269,17 +275,21 @@ impl Person {
         db: &SqliteConnection,
         name: &str,
     ) -> Result<Person, Error> {
-        h::people
+        match h::people
             .filter(h::person_name.like(name))
-            .first(db)
-            .or_else(|_| {
+            .first::<Person>(db) {
+            Ok(person) => Ok(person),
+            Err(_) => {
+                let slug = slugify(name);
                 diesel::insert_into(h::people)
-                    .values((
-                        h::person_name.eq(name),
-                        h::slug.eq(&slugify(name)),
-                    ))
-                    .get_result(db)
-            })
+                .values((
+                    h::person_name.eq(name),
+                    h::slug.eq(&slug),
+                ))
+                .execute(db)?;
+                h::people.filter(h::slug.eq(slug)).first(db)
+            }
+        }
     }
 }
 
@@ -341,7 +351,8 @@ impl Camera {
         } else {
             diesel::insert_into(c::cameras)
                 .values((c::manufacturer.eq(make), c::model.eq(modl)))
-                .get_result(db)
+                .execute(db)?;
+            return Self::get_or_create(db, make, modl);
         }
     }
 }

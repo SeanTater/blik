@@ -278,44 +278,24 @@ fn get_or_create_place(
     level: i16,
 ) -> Result<Place, diesel::result::Error> {
     use crate::schema::places::dsl::*;
-    places
+    let get_place = || places
         .filter(
             osm_id
                 .eq(Some(t_osm_id))
                 .or(place_name.eq(name).and(osm_id.is_null())),
         )
-        .first::<Place>(c)
-        .or_else(|_| {
-            let mut result = diesel::insert_into(places)
-                .values((
-                    place_name.eq(&name),
-                    slug.eq(&slugify(&name)),
-                    osm_id.eq(Some(t_osm_id)),
-                    osm_level.eq(Some(level)),
-                ))
-                .get_result::<Place>(c);
-            let mut attempt = 1;
-            while is_duplicate(&result) && attempt < 25 {
-                info!("Attempt #{} got {:?}, trying again", attempt, result);
-                attempt += 1;
-                let name = format!("{} ({})", name, attempt);
-                result = diesel::insert_into(places)
-                    .values((
-                        place_name.eq(&name),
-                        slug.eq(&slugify(&name)),
-                        osm_id.eq(Some(t_osm_id)),
-                        osm_level.eq(Some(level)),
-                    ))
-                    .get_result::<Place>(c);
-            }
-            result
-        })
-}
-
-fn is_duplicate<T>(r: &Result<T, diesel::result::Error>) -> bool {
-    use diesel::result::DatabaseErrorKind::UniqueViolation;
-    use diesel::result::Error::DatabaseError;
-    matches!(r, Err(DatabaseError(UniqueViolation, _)))
+        .first::<Place>(c);
+    get_place().or_else(|_| {
+        diesel::insert_into(places)
+            .values((
+                place_name.eq(&name),
+                slug.eq(&slugify(&name)),
+                osm_id.eq(Some(t_osm_id)),
+                osm_level.eq(Some(level)),
+            )) 
+            .execute(c)?;
+        get_place()
+    })
 }
 
 #[derive(Debug)]

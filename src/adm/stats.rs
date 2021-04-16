@@ -35,10 +35,10 @@ pub fn show_stats(db: &SqliteConnection) -> Result<(), Error> {
         "Count per year: {:?}",
         photos
             .select(sql::<(Nullable<Double>, BigInt)>(
-                "extract(year from date) y, count(*)"
+                "strftime('%Y', date) y, count(*)"
             ))
             .group_by(sql::<Nullable<Double>>("y"))
-            .order(sql::<Nullable<Double>>("y").desc().nulls_last())
+            .order(sql::<Nullable<Double>>("y").desc())
             .load::<(Option<f64>, i64)>(db)?
             .iter()
             .map(|&(y, n)| format!("{}: {}", y.unwrap_or(0.0), n))

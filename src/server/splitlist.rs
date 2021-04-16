@@ -3,13 +3,13 @@ use super::views_by_date::date_of_img;
 use super::{Context, ImgRange, PhotoLink};
 use crate::models::{Coord, Photo};
 use crate::schema::photos;
-use diesel::pg::{Pg, SqliteConnection};
+use diesel::sqlite::{Sqlite, SqliteConnection};
 use diesel::prelude::*;
 use log::{debug, info, warn};
 
 pub fn links_by_time<'a>(
     context: &Context,
-    photos: photos::BoxedQuery<'a, Pg>,
+    photos: photos::BoxedQuery<'a, Sqlite>,
     range: ImgRange,
     with_date: bool,
 ) -> (Vec<PhotoLink>, Vec<(Coord, i32)>) {
@@ -27,7 +27,7 @@ pub fn links_by_time<'a>(
         photos
     };
     let photos = photos
-        .order((date.desc().nulls_last(), id.desc()))
+        .order((date.desc(), id.desc()))
         .load(&c)
         .unwrap();
     let baseurl = UrlString::new(context.path_without_query());

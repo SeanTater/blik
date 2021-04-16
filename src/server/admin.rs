@@ -73,19 +73,22 @@ async fn set_tag(context: Context, form: TagForm) -> WarpResult {
     }
     let c = context.db().unwrap();
     use crate::models::{PhotoTag, Tag};
-    let tag = {
-        use crate::schema::tags::dsl::*;
+    use crate::schema::tags::dsl::*;
+    let get_tag = ||
         tags.filter(tag_name.like(&form.tag))
-            .first::<Tag>(&c)
-            .or_else(|_| {
-                diesel::insert_into(tags)
-                    .values((
-                        tag_name.eq(&form.tag),
-                        slug.eq(&slugify(&form.tag)),
-                    ))
-                    .get_result::<Tag>(&c)
-            })
-            .expect("Find or create tag")
+            .first::<Tag>(&c);
+    let tag = match get_tag() {
+        Ok(tag) => tag,
+        Err(_) => {
+            diesel::insert_into(tags)
+            .values((
+                tag_name.eq(&form.tag),
+                slug.eq(&slugify(&form.tag)),
+            ))
+            .execute(&c)
+            .expect("Get or create tag");
+            get_tag().expect("Get or create tag, next read")
+        }
     };
     use crate::schema::photo_tags::dsl::*;
     let q = photo_tags
@@ -185,14 +188,17 @@ async fn set_location(context: Context, form: CoordForm) -> WarpResult {
 
     let (lat, lng) = ((coord.x * 1e6) as i32, (coord.y * 1e6) as i32);
     use crate::schema::positions::dsl::*;
-    use diesel::insert_into;
-    insert_into(positions)
+    let db = context.db().unwrap();
+    match diesel::insert_into(positions)
         .values((photo_id.eq(image), latitude.eq(lat), longitude.eq(lng)))
-        .on_conflict(photo_id)
-        .do_update()
-        .set((latitude.eq(lat), longitude.eq(lng)))
-        .execute(&context.db().unwrap())
-        .expect("Insert image position");
+        .execute(&db) {
+        Ok(_) => Ok(0),
+        Err(_) => {
+            diesel::update(positions.find(image))
+            .set((latitude.eq(lat), longitude.eq(lng)))
+            .execute(&db)
+        } 
+    }.expect("Insert into image positions");
     match context
         .overpass()
         .update_image_places(&context.db_pool(), form.image)

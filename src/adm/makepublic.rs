@@ -1,5 +1,4 @@
 use super::result::Error;
-use crate::models::Photo;
 use crate::DbOpt;
 use diesel::sqlite::SqliteConnection;
 use diesel::prelude::*;
@@ -76,10 +75,10 @@ pub fn one(db: &SqliteConnection, tpath: &str) -> Result<(), Error> {
     use crate::schema::photos::dsl::*;
     match update(photos.filter(path.eq(&tpath)))
         .set(is_public.eq(true))
-        .get_result::<Photo>(db)
+        .execute(db)
     {
-        Ok(photo) => {
-            println!("Made {} public: {:?}", tpath, photo);
+        Ok(count) => {
+            println!("Made {} photos public, at {}", count, tpath);
             Ok(())
         }
         Err(DieselError::NotFound) => {

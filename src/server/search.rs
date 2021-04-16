@@ -67,7 +67,7 @@ pub fn search(context: Context, query: Vec<(String, String)>) -> Response {
 
     let c = context.db().unwrap();
     let photos = photos
-        .order((p::date.desc().nulls_last(), p::id.desc()))
+        .order((p::date.desc(), p::id.desc()))
         .load(&c)
         .unwrap();
 

@@ -133,9 +133,10 @@ fn make_public(context: Context, q: ImgQuery) -> ApiResult<GetImgResult> {
     let db = context.db()?;
     let img = id.load(&db)?.ok_or(NOT_FOUND)?;
     use crate::schema::photos::dsl as p;
-    let img = update(p::photos.find(img.id))
+    update(p::photos.find(img.id))
         .set(p::is_public.eq(true))
-        .get_result(&db)?;
+        .execute(&db)?;
+    let img = id.load(&db)?.ok_or(NOT_FOUND)?;
     Ok(GetImgResult::for_img(&img))
 }
 

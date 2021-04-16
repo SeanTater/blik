@@ -20,13 +20,13 @@ pub fn all_years(context: Context) -> Response {
             "cast(extract(year from date) as int) y, count(*)",
         ))
         .group_by(sql::<Nullable<Integer>>("y"))
-        .order(sql::<Nullable<Integer>>("y").desc().nulls_last())
+        .order(sql::<Nullable<Integer>>("y").desc())
         .load::<(Option<i32>, i64)>(&db)
         .unwrap()
         .iter()
         .map(|&(year, count)| {
             let q = Photo::query(context.is_authorized())
-                .order((grade.desc().nulls_last(), date.asc()))
+                .order((grade.desc(), date.asc()))
                 .limit(1);
             let photo = if let Some(year) = year {
                 q.filter(date.ge(start_of_year(year)))
@@ -71,7 +71,7 @@ pub fn months_in_year(year: i32, context: Context) -> Response {
             "cast(extract(month from date) as int) m, count(*)",
         ))
         .group_by(sql::<Integer>("m"))
-        .order(sql::<Integer>("m").desc().nulls_last())
+        .order(sql::<Integer>("m").desc())
         .load::<(i32, i64)>(&db)
         .unwrap()
         .iter()
@@ -80,7 +80,7 @@ pub fn months_in_year(year: i32, context: Context) -> Response {
             let photo = Photo::query(context.is_authorized())
                 .filter(date.ge(start_of_month(year, month)))
                 .filter(date.lt(start_of_month(year, month + 1)))
-                .order((grade.desc().nulls_last(), date.asc()))
+                .order((grade.desc(), date.asc()))
                 .limit(1)
                 .first::<Photo>(&db)
                 .unwrap();
@@ -144,7 +144,7 @@ pub fn days_in_month(year: i32, month: u32, context: Context) -> Response {
             "cast(extract(day from date) as int) d, count(*)",
         ))
         .group_by(sql::<Integer>("d"))
-        .order(sql::<Integer>("d").desc().nulls_last())
+        .order(sql::<Integer>("d").desc())
         .load::<(i32, i64)>(&db)
         .unwrap()
         .iter()
@@ -155,7 +155,7 @@ pub fn days_in_month(year: i32, month: u32, context: Context) -> Response {
             let photo = Photo::query(context.is_authorized())
                 .filter(date.ge(fromdate))
                 .filter(date.lt(fromdate + Duration::days(1)))
-                .order((grade.desc().nulls_last(), date.asc()))
+                .order((grade.desc(), date.asc()))
                 .limit(1)
                 .first::<Photo>(&db)
                 .unwrap();
@@ -316,7 +316,7 @@ pub fn on_this_day(context: Context) -> Response {
                         let photo = Photo::query(context.is_authorized())
                             .filter(date.ge(fromdate))
                             .filter(date.lt(fromdate + Duration::days(1)))
-                            .order((grade.desc().nulls_last(), date.asc()))
+                            .order((grade.desc(), date.asc()))
                             .limit(1)
                             .first::<Photo>(&db)
                             .unwrap();
@@ -364,7 +364,7 @@ pub fn prev_image(context: Context, param: FromParam) -> Response {
                 date.lt(from_date)
                     .or(date.eq(from_date).and(id.lt(param.from))),
             )
-            .order((date.desc().nulls_last(), id.desc()));
+            .order((date.desc(), id.desc()));
         if let Ok(photo) = q.first::<i32>(&db) {
             return redirect_to_img(photo);
         }
