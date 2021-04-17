@@ -8,7 +8,6 @@ Tag photos with places, people and other tags, while keeping some
 private and making others public.
 It uses a postgresql database for the metadata, and works with
 read-only access to the actual image files.
-Downscaled images are stored in memcache.
 
 My images are on [img.krats.se](https://img.krats.se/) where you can
 see those that are public though rphotos.

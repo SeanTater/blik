@@ -1,7 +1,7 @@
 use super::splitlist::{get_positions, split_to_group_links};
 use super::urlstring::UrlString;
 use super::{Context, RenderRucte};
-use crate::adm::result::Error;
+use anyhow::Result;
 use crate::models::{Facet, Person, Photo, Place, Tag};
 use crate::schema::photo_people::dsl as pp;
 use crate::schema::photo_places::dsl as pl;
@@ -121,7 +121,7 @@ impl SearchQuery {
     fn load(
         query: Vec<(String, String)>,
         db: &SqliteConnection,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self> {
         let mut result = SearchQuery::default();
         let (mut s_d, mut s_t, mut u_d, mut u_t) = (None, None, None, None);
         for (key, val) in &query {
@@ -217,7 +217,7 @@ impl QueryDateTime {
         let until_midnight = NaiveTime::from_hms_milli(23, 59, 59, 999);
         QueryDateTime::new(datetime_from_parts(date, time, until_midnight))
     }
-    fn from_img(photo_id: i32, db: &SqliteConnection) -> Result<Self, Error> {
+    fn from_img(photo_id: i32, db: &SqliteConnection) -> Result<Self> {
         Ok(QueryDateTime::new(
             p::photos
                 .select(p::date)

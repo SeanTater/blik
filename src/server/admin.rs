@@ -1,6 +1,6 @@
 //! Admin-only views, generally called by javascript.
 use super::{not_found, permission_denied, redirect_to_img, Context};
-use crate::models::{Coord, Photo, SizeTag};
+use crate::models::{Coord, Photo};
 use diesel::{self, prelude::*};
 use log::{info, warn};
 use serde::Deserialize;
@@ -47,8 +47,6 @@ fn rotate(context: Context, form: RotateForm) -> Response {
         image.rotation = newvalue;
         match image.save_changes::<Photo>(c) {
             Ok(image) => {
-                context.clear_cache(&image.cache_key(SizeTag::Small));
-                context.clear_cache(&image.cache_key(SizeTag::Medium));
                 return Builder::new().body("ok".into()).unwrap();
             }
             Err(error) => {

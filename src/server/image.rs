@@ -116,7 +116,5 @@ async fn get_image_data(
 ) -> Result<Vec<u8>, ImageLoadFailed> {
     let p = context.photos().get_raw_path(photo);
     let r = photo.rotation;
-    context
-        .cached_or(&photo.cache_key(size), || get_scaled_jpeg(p, r, size.px()))
-        .await
+    get_scaled_jpeg(p, r, size.px()).await
 }

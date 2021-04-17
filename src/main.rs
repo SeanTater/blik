@@ -2,6 +2,8 @@
 #![recursion_limit = "128"]
 #[macro_use]
 extern crate diesel;
+#[macro_use]
+extern crate anyhow;
 
 mod adm;
 mod dbopt;
@@ -13,14 +15,14 @@ mod pidfiles;
 mod schema;
 mod server;
 
-use crate::adm::result::Error;
 use crate::adm::stats::show_stats;
-use crate::adm::{findphotos, makepublic, precache, storestatics, users};
+use crate::adm::{findphotos, makepublic, storestatics, users};
 use crate::dbopt::DbOpt;
 use dotenv::dotenv;
 use std::path::PathBuf;
 use std::process::exit;
 use structopt::StructOpt;
+use anyhow::Result;
 
 /// Command line interface for rphotos.
 #[derive(StructOpt)]
@@ -34,12 +36,6 @@ enum RPhotos {
     Fetchplaces(fetch_places::Fetchplaces),
     /// Find new photos in the photo directory
     Findphotos(findphotos::Findphotos),
-    /// Make sure the photos has thumbnails stored in cache.
-    ///
-    /// The time limit is checked after each stored image, so the
-    /// command will complete in slightly more than the max time and
-    /// one image will be processed even if the max time is zero.
-    Precache(precache::Args),
     /// Show some statistics from the database
     Stats(DbOpt),
     /// Store statics as files for a web server
@@ -66,18 +62,6 @@ enum RPhotos {
 
 #[derive(StructOpt)]
 #[structopt(rename_all = "kebab-case")]
-struct CacheOpt {
-    /// How to connect to memcached.
-    #[structopt(
-        long,
-        env = "MEMCACHED_SERVER",
-        default_value = "memcache://127.0.0.1:11211"
-    )]
-    memcached_url: String,
-}
-
-#[derive(StructOpt)]
-#[structopt(rename_all = "kebab-case")]
 struct DirOpt {
     /// Path to the root directory storing all actual photos.
     #[structopt(long, env = "RPHOTOS_DIR")]
@@ -97,7 +81,7 @@ async fn main() {
     }
 }
 
-async fn run(args: &RPhotos) -> Result<(), Error> {
+async fn run(args: &RPhotos) -> Result<()> {
     match args {
         RPhotos::Findphotos(cmd) => cmd.run(),
         RPhotos::Makepublic(cmd) => cmd.run(),
@@ -105,7 +89,6 @@ async fn run(args: &RPhotos) -> Result<(), Error> {
         RPhotos::Userlist { db } => users::list(&db.connect()?),
         RPhotos::Userpass { db, user } => users::passwd(&db.connect()?, user),
         RPhotos::Fetchplaces(cmd) => cmd.run().await,
-        RPhotos::Precache(cmd) => cmd.run().await,
         RPhotos::Storestatics { dir } => storestatics::to_dir(dir),
         RPhotos::Runserver(ra) => server::run(ra).await,
     }

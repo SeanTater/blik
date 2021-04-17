@@ -1,4 +1,4 @@
-use crate::Error;
+use anyhow::Result;
 use diesel::sqlite::SqliteConnection;
 use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
 use diesel::{Connection, ConnectionError};
@@ -24,7 +24,7 @@ impl DbOpt {
         debug!("Got db connection in {:?}", time.elapsed());
         Ok(db)
     }
-    pub fn create_pool(&self) -> Result<SqlitePool, Error> {
+    pub fn create_pool(&self) -> Result<SqlitePool> {
         let time = Instant::now();
         let pool = Pool::builder()
             .min_idle(Some(2))

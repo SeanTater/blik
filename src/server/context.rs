@@ -2,12 +2,9 @@ use super::Args;
 use crate::dbopt::{SqlitePool, PooledSqlite};
 use crate::fetch_places::OverpassOpt;
 use crate::photosdir::PhotosDir;
-use diesel::r2d2::{Pool, PooledConnection};
+use diesel::r2d2;
 use log::{debug, warn};
 use medallion::{Header, Payload, Token};
-use r2d2_memcache::r2d2::Error;
-use r2d2_memcache::MemcacheConnectionManager;
-use std::future::Future;
 use std::sync::Arc;
 use std::time::Duration;
 use warp::filters::{cookie, header, BoxedFilter};
@@ -15,8 +12,6 @@ use warp::path::{self, FullPath};
 use warp::{self, Filter};
 
 pub type ContextFilter = BoxedFilter<(Context,)>;
-type MemcachePool = Pool<MemcacheConnectionManager>;
-type PooledMemcache = PooledConnection<MemcacheConnectionManager>;
 
 pub fn create_session_filter(args: &Args) -> ContextFilter {
     let global = Arc::new(GlobalContext::new(args));
@@ -47,22 +42,15 @@ pub fn create_session_filter(args: &Args) -> ContextFilter {
 struct GlobalContext {
     db_pool: SqlitePool,
     photosdir: PhotosDir,
-    memcache_pool: MemcachePool,
     jwt_secret: String,
     overpass: OverpassOpt,
 }
 
 impl GlobalContext {
     fn new(args: &Args) -> Self {
-        let mc_manager =
-            MemcacheConnectionManager::new(args.cache.memcached_url.as_ref());
         GlobalContext {
-            db_pool: args.db.create_pool().expect("Posgresql pool"),
+            db_pool: args.db.create_pool().expect("Sqlite pool"),
             photosdir: PhotosDir::new(&args.photos.photos_dir),
-            memcache_pool: Pool::builder()
-                .connection_timeout(Duration::from_secs(1))
-                .build(mc_manager)
-                .expect("Memcache pool"),
             jwt_secret: args.jwt_key.clone(),
             overpass: args.overpass.clone(),
         }
@@ -98,9 +86,6 @@ impl GlobalContext {
             .sub
             .ok_or_else(|| "User missing in jwt claims".to_string())
     }
-    fn cache(&self) -> Result<PooledMemcache, Error> {
-        self.memcache_pool.get()
-    }
 }
 
 fn verify_token(
@@ -112,7 +97,7 @@ fn verify_token(
         .map_err(|e| format!("Failed to verify token {:?}: {}", token, e))
 }
 
-/// The request context, providing database, memcache and authorized user.
+/// The request context, providing database, and authorized user.
 pub struct Context {
     global: Arc<GlobalContext>,
     path: FullPath,
@@ -120,8 +105,8 @@ pub struct Context {
 }
 
 impl Context {
-    pub fn db(&self) -> Result<PooledSqlite, Error> {
-        self.global.db_pool.get()
+    pub fn db(&self) -> Result<PooledSqlite, diesel::r2d2::PoolError> {
+        Ok(self.global.db_pool.get()?)
     }
     pub fn db_pool(&self) -> SqlitePool {
         self.global.db_pool.clone()
@@ -134,50 +119,6 @@ impl Context {
     }
     pub fn path_without_query(&self) -> &str {
         self.path.as_str()
-    }
-    pub async fn cached_or<F, R, E>(
-        &self,
-        key: &str,
-        calculate: F,
-    ) -> Result<Vec<u8>, E>
-    where
-        F: FnOnce() -> R,
-        R: Future<Output = Result<Vec<u8>, E>>,
-    {
-        match self.global.cache() {
-            Ok(client) => {
-                match client.get(key) {
-                    Ok(Some(data)) => {
-                        debug!("Cache: {} found", key);
-                        return Ok(data);
-                    }
-                    Ok(None) => {
-                        debug!("Cache: {} not found", key);
-                    }
-                    Err(err) => {
-                        warn!("Cache: get {} failed: {:?}", key, err);
-                    }
-                }
-                let data = calculate().await?;
-                match client.set(key, &data[..], 7 * 24 * 60 * 60) {
-                    Ok(()) => debug!("Cache: stored {}", key),
-                    Err(err) => warn!("Cache: Error storing {}: {}", key, err),
-                }
-                Ok(data)
-            }
-            Err(err) => {
-                warn!("Error connecting to memcache: {}", err);
-                calculate().await
-            }
-        }
-    }
-    pub fn clear_cache(&self, key: &str) {
-        if let Ok(client) = self.global.cache() {
-            match client.delete(key) {
-                Ok(flag) => debug!("Cache: deleted {}: {:?}", key, flag),
-                Err(e) => warn!("Cache: Failed to delete {}: {}", key, e),
-            }
-        }
     }
     pub fn photos(&self) -> &PhotosDir {
         &self.global.photosdir

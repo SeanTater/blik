@@ -172,12 +172,12 @@ impl From<diesel::result::Error> for ApiError {
         }
     }
 }
-impl From<r2d2_memcache::r2d2::Error> for ApiError {
-    fn from(err: r2d2_memcache::r2d2::Error) -> ApiError {
-        warn!("R2D2 error in api: {}", err);
+impl From<diesel::r2d2::PoolError> for ApiError {
+    fn from(err: diesel::r2d2::PoolError) -> ApiError {
+        warn!("Diesel error in api: {}", err);
         ApiError {
             code: StatusCode::INTERNAL_SERVER_ERROR,
-            msg: "pool error",
+            msg: "database pool error",
         }
     }
 }

@@ -1,4 +1,4 @@
-use super::result::Error;
+use anyhow::Result;
 use crate::DbOpt;
 use diesel::sqlite::SqliteConnection;
 use diesel::prelude::*;
@@ -30,7 +30,7 @@ pub struct Makepublic {
 }
 
 impl Makepublic {
-    pub fn run(&self) -> Result<(), Error> {
+    pub fn run(&self) -> Result<()> {
         let db = self.db.connect()?;
         match (
             self.list.as_ref().map(AsRef::as_ref),
@@ -66,12 +66,12 @@ impl Makepublic {
                 Ok(())
             }
             (None, None, Some(image)) => one(&db, image),
-            _ => Err(Error::Other("bad command".to_string())),
+            _ => Err(anyhow!("bad command")),
         }
     }
 }
 
-pub fn one(db: &SqliteConnection, tpath: &str) -> Result<(), Error> {
+pub fn one(db: &SqliteConnection, tpath: &str) -> Result<()> {
     use crate::schema::photos::dsl::*;
     match update(photos.filter(path.eq(&tpath)))
         .set(is_public.eq(true))
@@ -82,7 +82,7 @@ pub fn one(db: &SqliteConnection, tpath: &str) -> Result<(), Error> {
             Ok(())
         }
         Err(DieselError::NotFound) => {
-            Err(Error::Other(format!("File {} is not known", tpath,)))
+            Err(anyhow!("File {} is not known", tpath))
         }
         Err(error) => Err(error.into()),
     }
@@ -91,7 +91,7 @@ pub fn one(db: &SqliteConnection, tpath: &str) -> Result<(), Error> {
 pub fn by_file_list<In: BufRead + Sized>(
     db: &SqliteConnection,
     list: In,
-) -> Result<(), Error> {
+) -> Result<()> {
     for line in list.lines() {
         one(db, &line?)?;
     }

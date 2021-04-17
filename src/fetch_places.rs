@@ -7,6 +7,7 @@ use reqwest::{self, Client, Response};
 use serde_json::Value;
 use slug::slugify;
 use structopt::StructOpt;
+use anyhow::Result;
 
 #[derive(StructOpt)]
 #[structopt(rename_all = "kebab-case")]
@@ -27,7 +28,7 @@ pub struct Fetchplaces {
 }
 
 impl Fetchplaces {
-    pub async fn run(&self) -> Result<(), super::adm::result::Error> {
+    pub async fn run(&self) -> Result<()> {
         let db = self.db.create_pool()?;
         if self.auto {
             println!("Should find {} photos to fetch places for", self.limit);
@@ -70,42 +71,34 @@ impl OverpassOpt {
         &self,
         db: &SqlitePool,
         image: i32,
-    ) -> Result<(), Error> {
+    ) -> Result<()> {
         use crate::schema::positions::dsl::*;
         let coord = positions
             .filter(photo_id.eq(image))
             .select((latitude, longitude))
-            .first::<Coord>(
-                &db.get().map_err(|e| Error::Pool(image, e.to_string()))?,
-            )
-            .optional()
-            .map_err(|e| Error::Db(image, e))?
-            .ok_or_else(|| Error::NoPosition(image))?;
+            .first::<Coord>(&db.get()?)?;
         debug!("Should get places for #{} at {:?}", image, coord);
         let data = Client::new()
             .post(&self.overpass_url)
             .body(format!("[out:json];is_in({},{});out;", coord.x, coord.y))
             .send()
             .await
-            .and_then(Response::error_for_status)
-            .map_err(|e| Error::Server(image, e))?
+            .and_then(Response::error_for_status)?
             .json::<Value>()
-            .await
-            .map_err(|e| Error::Server(image, e))?;
+            .await?;
 
         if let Some(elements) = data
             .as_object()
             .and_then(|o| o.get("elements"))
             .and_then(Value::as_array)
         {
-            let c = db.get().map_err(|e| Error::Pool(image, e.to_string()))?;
+            let c = db.get()?;
             for obj in elements {
                 if let (Some(t_osm_id), Some((name, level))) =
                     (osm_id(obj), name_and_level(obj))
                 {
                     debug!("{}: {} (level {})", t_osm_id, name, level);
-                    let place = get_or_create_place(&c, t_osm_id, name, level)
-                        .map_err(|e| Error::Db(image, e))?;
+                    let place = get_or_create_place(&c, t_osm_id, name, level)?;
                     if place.osm_id.is_none() {
                         debug!("Matched {:?} by name, update osm info", place);
                         use crate::schema::places::dsl::*;
@@ -115,8 +108,7 @@ impl OverpassOpt {
                                 osm_id.eq(Some(t_osm_id)),
                                 osm_level.eq(level),
                             ))
-                            .execute(&c)
-                            .map_err(|e| Error::Db(image, e))?;
+                            .execute(&c)?;
                     }
                     use crate::models::PhotoPlace;
                     use crate::schema::photo_places::dsl::*;
@@ -134,8 +126,7 @@ impl OverpassOpt {
                                 photo_id.eq(image),
                                 place_id.eq(place.id),
                             ))
-                            .execute(&c)
-                            .map_err(|e| Error::Db(image, e))?;
+                            .execute(&c)?;
                     }
                 } else {
                     info!("Unused area: {}", obj);
@@ -296,14 +287,6 @@ fn get_or_create_place(
             .execute(c)?;
         get_place()
     })
-}
-
-#[derive(Debug)]
-pub enum Error {
-    NoPosition(i32),
-    Db(i32, diesel::result::Error),
-    Pool(i32, String),
-    Server(i32, reqwest::Error),
 }
 
 #[cfg(test)]

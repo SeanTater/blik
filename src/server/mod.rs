@@ -19,12 +19,12 @@ use self::render_ructe::BuilderExt;
 use self::search::*;
 use self::views_by_category::*;
 use self::views_by_date::*;
-use super::{CacheOpt, DbOpt, DirOpt};
-use crate::adm::result::Error;
+use super::{DbOpt, DirOpt};
 use crate::fetch_places::OverpassOpt;
 use crate::models::Photo;
 use crate::pidfiles::handle_pid_file;
 use crate::templates::{self, Html, RenderRucte};
+use anyhow::Result;
 use chrono::Datelike;
 use diesel::prelude::*;
 use log::info;
@@ -41,8 +41,6 @@ use warp::{self, Filter, Rejection, Reply};
 pub struct Args {
     #[structopt(flatten)]
     db: DbOpt,
-    #[structopt(flatten)]
-    cache: CacheOpt,
     #[structopt(flatten)]
     photos: DirOpt,
     #[structopt(flatten)]
@@ -67,7 +65,7 @@ pub struct Args {
     jwt_key: String,
 }
 
-pub async fn run(args: &Args) -> Result<(), Error> {
+pub async fn run(args: &Args) -> Result<()> {
     if let Some(pidfile) = &args.pidfile {
         handle_pid_file(&pidfile, args.replace).unwrap()
     }

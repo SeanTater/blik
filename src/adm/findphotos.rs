@@ -1,4 +1,4 @@
-use super::result::Error;
+use anyhow::Result;
 use crate::models::{Camera, Modification, Photo};
 use crate::myexif::ExifData;
 use crate::photosdir::PhotosDir;
@@ -23,18 +23,18 @@ pub struct Findphotos {
 }
 
 impl Findphotos {
-    pub fn run(&self) -> Result<(), Error> {
+    pub fn run(&self) -> Result<()> {
         let pd = PhotosDir::new(&self.photos.photos_dir);
         let db = self.db.connect()?;
         if !self.base.is_empty() {
             for base in &self.base {
                 crawl(&db, &pd, Path::new(base)).map_err(|e| {
-                    Error::Other(format!("Failed to crawl {}: {}", base, e))
+                    anyhow!("Failed to crawl {}: {}", base, e)
                 })?;
             }
         } else {
             crawl(&db, &pd, Path::new("")).map_err(|e| {
-                Error::Other(format!("Failed to crawl: {}", e))
+                anyhow!("Failed to crawl: {}", e)
             })?;
         }
         Ok(())
@@ -45,7 +45,7 @@ fn crawl(
     db: &SqliteConnection,
     photos: &PhotosDir,
     only_in: &Path,
-) -> Result<(), Error> {
+) -> Result<()> {
     photos.find_files(
         only_in,
         &|path, exif| match save_photo(db, path, exif) {
@@ -60,9 +60,9 @@ fn save_photo(
     db: &SqliteConnection,
     file_path: &str,
     exif: &ExifData,
-) -> Result<(), Error> {
-    let width = exif.width.ok_or(Error::MissingWidth)?;
-    let height = exif.height.ok_or(Error::MissingHeight)?;
+) -> Result<()> {
+    let width = exif.width.ok_or(anyhow!("Missing width"))?;
+    let height = exif.height.ok_or(anyhow!("Missing height"))?;
     let photo = match Photo::create_or_set_basics(
         db,
         file_path,
@@ -120,7 +120,7 @@ fn save_photo(
 fn find_camera(
     db: &SqliteConnection,
     exif: &ExifData,
-) -> Result<Option<Camera>, Error> {
+) -> Result<Option<Camera>> {
     if let Some((make, model)) = exif.camera() {
         let cam = Camera::get_or_create(db, &make, &model)?;
         return Ok(Some(cam));

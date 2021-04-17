@@ -1,4 +1,4 @@
-use super::result::Error;
+use anyhow::Result;
 use crate::templates::statics::STATICS;
 use brotli::enc::backward_references::BrotliEncoderParams;
 use brotli::BrotliCompress;
@@ -7,7 +7,7 @@ use std::fs::{create_dir_all, File};
 use std::io::prelude::*;
 use std::path::Path;
 
-pub fn to_dir(dir: &str) -> Result<(), Error> {
+pub fn to_dir(dir: &str) -> Result<()> {
     let dir: &Path = dir.as_ref();
     for s in STATICS {
         // s.name may contain directory components.
@@ -31,7 +31,7 @@ pub fn to_dir(dir: &str) -> Result<(), Error> {
     Ok(())
 }
 
-fn gzipped(data: &[u8]) -> Result<Vec<u8>, Error> {
+fn gzipped(data: &[u8]) -> Result<Vec<u8>> {
     let mut buf = Vec::new();
     {
         let mut gz = GzBuilder::new().write(&mut buf, Compression::best());
@@ -41,7 +41,7 @@ fn gzipped(data: &[u8]) -> Result<Vec<u8>, Error> {
     Ok(buf)
 }
 
-fn brcompressed(data: &[u8]) -> Result<Vec<u8>, Error> {
+fn brcompressed(data: &[u8]) -> Result<Vec<u8>> {
     let mut buf = Vec::new();
     let params = BrotliEncoderParams {
         quality: 11,

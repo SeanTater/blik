@@ -1,5 +1,5 @@
 //! Extract all the exif data I care about
-use crate::adm::result::Error;
+use anyhow::Result;
 use chrono::{Date, Local, NaiveDate, NaiveDateTime, Utc};
 use exif::{Field, In, Reader, Tag, Value};
 use log::{debug, error, warn};
@@ -25,12 +25,11 @@ pub struct ExifData {
 }
 
 impl ExifData {
-    pub fn read_from(path: &Path) -> Result<Self, Error> {
+    pub fn read_from(path: &Path) -> Result<Self> {
         let mut result = Self::default();
-        let file = File::open(path).map_err(|e| Error::in_file(&e, path))?;
+        let file = File::open(path)?;
         let reader = Reader::new()
-            .read_from_container(&mut BufReader::new(&file))
-            .map_err(|e| Error::in_file(&e, path))?;
+            .read_from_container(&mut BufReader::new(&file))?;
         for f in reader.fields() {
             if f.ifd_num == In::PRIMARY {
                 if let Some(d) = is_datetime(f, Tag::DateTimeOriginal) {
@@ -137,7 +136,7 @@ impl ExifData {
         }
     }
 
-    pub fn rotation(&self) -> Result<i16, Error> {
+    pub fn rotation(&self) -> Result<i16> {
         if let Some(value) = self.orientation {
             debug!("Raw orientation is {}", value);
             match value {
@@ -145,7 +144,7 @@ impl ExifData {
                 3 => Ok(180),
                 6 => Ok(90),
                 8 => Ok(270),
-                x => Err(Error::UnknownOrientation(x)),
+                x => Err(anyhow!("Unknown orientation: {}", x)),
             }
         } else {
             debug!("Orientation tag missing, default to 0 degrees");
@@ -251,23 +250,23 @@ fn is_u32(f: &Field, tag: Tag) -> Option<u32> {
     }
 }
 
-fn single_ascii(value: &Value) -> Result<&str, Error> {
+fn single_ascii(value: &Value) -> Result<&str> {
     match value {
         &Value::Ascii(ref v) if v.len() == 1 => Ok(from_utf8(&v[0])?),
         &Value::Ascii(ref v) if v.len() > 1 => {
             for t in &v[1..] {
                 if !t.is_empty() {
-                    return Err(Error::Other(format!(
+                    return Err(anyhow!(
                         "Got {:?}, expected single ascii value",
                         v,
-                    )));
+                    ));
                 }
             }
             Ok(from_utf8(&v[0])?)
         }
-        v => Err(Error::Other(format!(
+        v => Err(anyhow!(
             "Got {:?}, expected single ascii value",
             v,
-        ))),
+        )),
     }
 }

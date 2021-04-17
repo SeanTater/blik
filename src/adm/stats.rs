@@ -1,4 +1,4 @@
-use super::result::Error;
+use anyhow::Result;
 use crate::schema::people::dsl::people;
 use crate::schema::photos::dsl::photos;
 use crate::schema::places::dsl::places;
@@ -8,7 +8,7 @@ use diesel::sqlite::SqliteConnection;
 use diesel::prelude::*;
 use diesel::sql_types::{BigInt, Double, Nullable};
 
-pub fn show_stats(db: &SqliteConnection) -> Result<(), Error> {
+pub fn show_stats(db: &SqliteConnection) -> Result<()> {
     println!(
         "There are {} photos in total.",
         photos.select(count_star()).first::<i64>(db)?,
