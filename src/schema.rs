@@ -1,13 +1,13 @@
 table! {
     attributions (id) {
-        id -> Nullable<Integer>,
+        id -> Integer,
         name -> Text,
     }
 }
 
 table! {
     cameras (id) {
-        id -> Nullable<Integer>,
+        id -> Integer,
         manufacturer -> Text,
         model -> Text,
     }
@@ -15,7 +15,7 @@ table! {
 
 table! {
     people (id) {
-        id -> Nullable<Integer>,
+        id -> Integer,
         slug -> Text,
         person_name -> Text,
     }
@@ -23,7 +23,7 @@ table! {
 
 table! {
     photo_people (id) {
-        id -> Nullable<Integer>,
+        id -> Integer,
         photo_id -> Integer,
         person_id -> Integer,
     }
@@ -31,7 +31,7 @@ table! {
 
 table! {
     photo_places (id) {
-        id -> Nullable<Integer>,
+        id -> Integer,
         photo_id -> Integer,
         place_id -> Integer,
     }
@@ -39,7 +39,7 @@ table! {
 
 table! {
     photo_tags (id) {
-        id -> Nullable<Integer>,
+        id -> Integer,
         photo_id -> Integer,
         tag_id -> Integer,
     }
@@ -47,12 +47,12 @@ table! {
 
 table! {
     photos (id) {
-        id -> Nullable<Integer>,
+        id -> Integer,
         path -> Text,
-        date -> Nullable<Text>,
-        grade -> Nullable<Integer>,
-        rotation -> Integer,
-        is_public -> Nullable<Integer>,
+        date -> Nullable<Timestamp>,
+        grade -> Nullable<SmallInt>,
+        rotation -> SmallInt,
+        is_public -> Bool,
         camera_id -> Nullable<Integer>,
         attribution_id -> Nullable<Integer>,
         width -> Integer,
@@ -62,17 +62,17 @@ table! {
 
 table! {
     places (id) {
-        id -> Nullable<Integer>,
+        id -> Integer,
         slug -> Text,
         place_name -> Text,
-        osm_id -> Nullable<Integer>,
-        osm_level -> Nullable<Integer>,
+        osm_id -> Nullable<BigInt>,
+        osm_level -> Nullable<SmallInt>,
     }
 }
 
 table! {
     positions (id) {
-        id -> Nullable<Integer>,
+        id -> Integer,
         photo_id -> Integer,
         latitude -> Integer,
         longitude -> Integer,
@@ -81,7 +81,7 @@ table! {
 
 table! {
     tags (id) {
-        id -> Nullable<Integer>,
+        id -> Integer,
         slug -> Text,
         tag_name -> Text,
     }
@@ -89,7 +89,7 @@ table! {
 
 table! {
     users (id) {
-        id -> Nullable<Integer>,
+        id -> Integer,
         username -> Text,
         password -> Text,
     }
