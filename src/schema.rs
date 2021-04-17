@@ -1,97 +1,97 @@
 table! {
     attributions (id) {
-        id -> Int4,
-        name -> Varchar,
+        id -> Nullable<Integer>,
+        name -> Text,
     }
 }
 
 table! {
     cameras (id) {
-        id -> Int4,
-        manufacturer -> Varchar,
-        model -> Varchar,
+        id -> Nullable<Integer>,
+        manufacturer -> Text,
+        model -> Text,
     }
 }
 
 table! {
     people (id) {
-        id -> Int4,
-        slug -> Varchar,
-        person_name -> Varchar,
+        id -> Nullable<Integer>,
+        slug -> Text,
+        person_name -> Text,
     }
 }
 
 table! {
     photo_people (id) {
-        id -> Int4,
-        photo_id -> Int4,
-        person_id -> Int4,
+        id -> Nullable<Integer>,
+        photo_id -> Integer,
+        person_id -> Integer,
     }
 }
 
 table! {
     photo_places (id) {
-        id -> Int4,
-        photo_id -> Int4,
-        place_id -> Int4,
+        id -> Nullable<Integer>,
+        photo_id -> Integer,
+        place_id -> Integer,
     }
 }
 
 table! {
     photo_tags (id) {
-        id -> Int4,
-        photo_id -> Int4,
-        tag_id -> Int4,
+        id -> Nullable<Integer>,
+        photo_id -> Integer,
+        tag_id -> Integer,
     }
 }
 
 table! {
     photos (id) {
-        id -> Int4,
-        path -> Varchar,
-        date -> Nullable<Timestamp>,
-        grade -> Nullable<Int2>,
-        rotation -> Int2,
-        is_public -> Bool,
-        camera_id -> Nullable<Int4>,
-        attribution_id -> Nullable<Int4>,
-        width -> Int4,
-        height -> Int4,
+        id -> Nullable<Integer>,
+        path -> Text,
+        date -> Nullable<Text>,
+        grade -> Nullable<Integer>,
+        rotation -> Integer,
+        is_public -> Nullable<Integer>,
+        camera_id -> Nullable<Integer>,
+        attribution_id -> Nullable<Integer>,
+        width -> Integer,
+        height -> Integer,
     }
 }
 
 table! {
     places (id) {
-        id -> Int4,
-        slug -> Varchar,
-        place_name -> Varchar,
-        osm_id -> Nullable<Int8>,
-        osm_level -> Nullable<Int2>,
+        id -> Nullable<Integer>,
+        slug -> Text,
+        place_name -> Text,
+        osm_id -> Nullable<Integer>,
+        osm_level -> Nullable<Integer>,
     }
 }
 
 table! {
     positions (id) {
-        id -> Int4,
-        photo_id -> Int4,
-        latitude -> Int4,
-        longitude -> Int4,
+        id -> Nullable<Integer>,
+        photo_id -> Integer,
+        latitude -> Integer,
+        longitude -> Integer,
     }
 }
 
 table! {
     tags (id) {
-        id -> Int4,
-        slug -> Varchar,
-        tag_name -> Varchar,
+        id -> Nullable<Integer>,
+        slug -> Text,
+        tag_name -> Text,
     }
 }
 
 table! {
     users (id) {
-        id -> Int4,
-        username -> Varchar,
-        password -> Varchar,
+        id -> Nullable<Integer>,
+        username -> Text,
+        password -> Text,
     }
 }
 
@@ -101,8 +101,6 @@ joinable!(photo_places -> photos (photo_id));
 joinable!(photo_places -> places (place_id));
 joinable!(photo_tags -> photos (photo_id));
 joinable!(photo_tags -> tags (tag_id));
-joinable!(photos -> attributions (attribution_id));
-joinable!(photos -> cameras (camera_id));
 joinable!(positions -> photos (photo_id));
 
 allow_tables_to_appear_in_same_query!(

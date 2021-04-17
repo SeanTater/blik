@@ -1,2 +1,0 @@
-ALTER TABLE photos DROP COLUMN width;
-ALTER TABLE photos DROP COLUMN height;
