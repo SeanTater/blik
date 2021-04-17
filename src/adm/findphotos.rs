@@ -2,7 +2,7 @@ use anyhow::Result;
 use crate::models::{Camera, Modification, Photo};
 use crate::myexif::ExifData;
 use crate::photosdir::PhotosDir;
-use crate::{DbOpt, DirOpt};
+use crate::DirOpt;
 use diesel::insert_into;
 use diesel::sqlite::SqliteConnection;
 use diesel::prelude::*;
@@ -14,8 +14,6 @@ use structopt::StructOpt;
 #[structopt(rename_all = "kebab-case")]
 pub struct Findphotos {
     #[structopt(flatten)]
-    db: DbOpt,
-    #[structopt(flatten)]
     photos: DirOpt,
 
     /// Base directory to search in (relative to the image root).
@@ -25,7 +23,7 @@ pub struct Findphotos {
 impl Findphotos {
     pub fn run(&self) -> Result<()> {
         let pd = PhotosDir::new(&self.photos.photos_dir);
-        let db = self.db.connect()?;
+        let db = crate::dbopt::connect()?;
         if !self.base.is_empty() {
             for base in &self.base {
                 crawl(&db, &pd, Path::new(base)).map_err(|e| {

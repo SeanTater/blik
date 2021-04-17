@@ -1,5 +1,4 @@
 use anyhow::Result;
-use crate::DbOpt;
 use diesel::sqlite::SqliteConnection;
 use diesel::prelude::*;
 use diesel::result::Error as DieselError;
@@ -14,8 +13,6 @@ use structopt::StructOpt;
 #[structopt(rename_all = "kebab-case")]
 #[structopt(group = ArgGroup::with_name("spec").required(true))]
 pub struct Makepublic {
-    #[structopt(flatten)]
-    db: DbOpt,
     /// Image path to make public
     #[structopt(group = "spec")]
     image: Option<String>,
@@ -31,7 +28,7 @@ pub struct Makepublic {
 
 impl Makepublic {
     pub fn run(&self) -> Result<()> {
-        let db = self.db.connect()?;
+        let db = crate::dbopt::connect()?;
         match (
             self.list.as_ref().map(AsRef::as_ref),
             &self.tag,

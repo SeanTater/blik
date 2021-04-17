@@ -17,7 +17,6 @@ mod server;
 
 use crate::adm::stats::show_stats;
 use crate::adm::{findphotos, makepublic, storestatics, users};
-use crate::dbopt::DbOpt;
 use dotenv::dotenv;
 use std::path::PathBuf;
 use std::process::exit;
@@ -37,21 +36,16 @@ enum RPhotos {
     /// Find new photos in the photo directory
     Findphotos(findphotos::Findphotos),
     /// Show some statistics from the database
-    Stats(DbOpt),
+    Stats,
     /// Store statics as files for a web server
     Storestatics {
         /// Directory to store the files in
         dir: String,
     },
     /// List existing users
-    Userlist {
-        #[structopt(flatten)]
-        db: DbOpt,
-    },
+    Userlist{},
     /// Set password for a (new or existing) user
     Userpass {
-        #[structopt(flatten)]
-        db: DbOpt,
         /// Username to set password for
         // TODO: Use a special type that only accepts nice user names.
         user: String,
@@ -85,9 +79,9 @@ async fn run(args: &RPhotos) -> Result<()> {
     match args {
         RPhotos::Findphotos(cmd) => cmd.run(),
         RPhotos::Makepublic(cmd) => cmd.run(),
-        RPhotos::Stats(db) => show_stats(&db.connect()?),
-        RPhotos::Userlist { db } => users::list(&db.connect()?),
-        RPhotos::Userpass { db, user } => users::passwd(&db.connect()?, user),
+        RPhotos::Stats => show_stats(&dbopt::connect()?),
+        RPhotos::Userlist{} => users::list(&dbopt::connect()?),
+        RPhotos::Userpass{user} => users::passwd(&dbopt::connect()?, user),
         RPhotos::Fetchplaces(cmd) => cmd.run().await,
         RPhotos::Storestatics { dir } => storestatics::to_dir(dir),
         RPhotos::Runserver(ra) => server::run(ra).await,

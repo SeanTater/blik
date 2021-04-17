@@ -19,7 +19,7 @@ use self::render_ructe::BuilderExt;
 use self::search::*;
 use self::views_by_category::*;
 use self::views_by_date::*;
-use super::{DbOpt, DirOpt};
+use super::DirOpt;
 use crate::fetch_places::OverpassOpt;
 use crate::models::Photo;
 use crate::pidfiles::handle_pid_file;
@@ -39,8 +39,6 @@ use warp::{self, Filter, Rejection, Reply};
 #[derive(StructOpt)]
 #[structopt(rename_all = "kebab-case")]
 pub struct Args {
-    #[structopt(flatten)]
-    db: DbOpt,
     #[structopt(flatten)]
     photos: DirOpt,
     #[structopt(flatten)]

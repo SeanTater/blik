@@ -49,7 +49,7 @@ struct GlobalContext {
 impl GlobalContext {
     fn new(args: &Args) -> Self {
         GlobalContext {
-            db_pool: args.db.create_pool().expect("Sqlite pool"),
+            db_pool: crate::dbopt::create_pool().expect("Sqlite pool"),
             photosdir: PhotosDir::new(&args.photos.photos_dir),
             jwt_secret: args.jwt_key.clone(),
             overpass: args.overpass.clone(),

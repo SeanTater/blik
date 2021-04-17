@@ -1,6 +1,5 @@
 use crate::dbopt::SqlitePool;
 use crate::models::{Coord, Place};
-use crate::DbOpt;
 use diesel::prelude::*;
 use log::{debug, info};
 use reqwest::{self, Client, Response};
@@ -12,8 +11,6 @@ use anyhow::Result;
 #[derive(StructOpt)]
 #[structopt(rename_all = "kebab-case")]
 pub struct Fetchplaces {
-    #[structopt(flatten)]
-    db: DbOpt,
     #[structopt(flatten)]
     overpass: OverpassOpt,
 
@@ -29,7 +26,7 @@ pub struct Fetchplaces {
 
 impl Fetchplaces {
     pub async fn run(&self) -> Result<()> {
-        let db = self.db.create_pool()?;
+        let db = crate::dbopt::create_pool()?;
         if self.auto {
             println!("Should find {} photos to fetch places for", self.limit);
             use crate::schema::photo_places::dsl as place;
