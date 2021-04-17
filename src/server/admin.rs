@@ -197,15 +197,6 @@ async fn set_location(context: Context, form: CoordForm) -> WarpResult {
             .execute(&db)
         } 
     }.expect("Insert into image positions");
-    match context
-        .overpass()
-        .update_image_places(&context.db_pool(), form.image)
-        .await
-    {
-        Ok(()) => (),
-        // TODO Tell the user something failed?
-        Err(err) => warn!("Failed to fetch places: {:?}", err),
-    }
     Ok(redirect_to_img(form.image))
 }
 

@@ -1,8 +1,6 @@
 use super::Args;
 use crate::dbopt::{SqlitePool, PooledSqlite};
-use crate::fetch_places::OverpassOpt;
 use crate::photosdir::PhotosDir;
-use diesel::r2d2;
 use log::{debug, warn};
 use medallion::{Header, Payload, Token};
 use std::sync::Arc;
@@ -43,7 +41,6 @@ struct GlobalContext {
     db_pool: SqlitePool,
     photosdir: PhotosDir,
     jwt_secret: String,
-    overpass: OverpassOpt,
 }
 
 impl GlobalContext {
@@ -52,7 +49,6 @@ impl GlobalContext {
             db_pool: crate::dbopt::create_pool().expect("Sqlite pool"),
             photosdir: PhotosDir::new(&args.photos.photos_dir),
             jwt_secret: args.jwt_key.clone(),
-            overpass: args.overpass.clone(),
         }
     }
 
@@ -122,9 +118,6 @@ impl Context {
     }
     pub fn photos(&self) -> &PhotosDir {
         &self.global.photosdir
-    }
-    pub fn overpass(&self) -> &OverpassOpt {
-        &self.global.overpass
     }
 
     pub fn make_token(&self, user: &str) -> Option<String> {

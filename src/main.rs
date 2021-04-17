@@ -7,7 +7,6 @@ extern crate anyhow;
 
 mod adm;
 mod dbopt;
-mod fetch_places;
 mod models;
 mod myexif;
 mod photosdir;
@@ -31,8 +30,6 @@ enum RPhotos {
     ///
     /// The image path(s) are relative to the image root.
     Makepublic(makepublic::Makepublic),
-    /// Get place tags for photos by looking up coordinates in OSM
-    Fetchplaces(fetch_places::Fetchplaces),
     /// Find new photos in the photo directory
     Findphotos(findphotos::Findphotos),
     /// Show some statistics from the database
@@ -82,7 +79,6 @@ async fn run(args: &RPhotos) -> Result<()> {
         RPhotos::Stats => show_stats(&dbopt::connect()?),
         RPhotos::Userlist{} => users::list(&dbopt::connect()?),
         RPhotos::Userpass{user} => users::passwd(&dbopt::connect()?, user),
-        RPhotos::Fetchplaces(cmd) => cmd.run().await,
         RPhotos::Storestatics { dir } => storestatics::to_dir(dir),
         RPhotos::Runserver(ra) => server::run(ra).await,
     }
