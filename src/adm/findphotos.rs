@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use crate::models::{Camera, Modification, Photo};
+use crate::models::{Modification, Photo};
 use crate::myexif::ExifData;
 use crate::photosdir::PhotosDir;
 use crate::DirOpt;
@@ -68,7 +68,6 @@ fn save_photo(
         height as i32,
         exif.date(),
         exif.rotation()?,
-        find_camera(db, exif)?,
     )? {
         Modification::Created(photo) => {
             info!("Created #{}, {}", photo.id, photo.path);
@@ -113,15 +112,4 @@ fn save_photo(
         }
     }
     Ok(())
-}
-
-fn find_camera(
-    db: &SqliteConnection,
-    exif: &ExifData,
-) -> Result<Option<Camera>> {
-    if let Some((make, model)) = exif.camera() {
-        let cam = Camera::get_or_create(db, &make, &model)?;
-        return Ok(Some(cam));
-    }
-    Ok(None)
 }

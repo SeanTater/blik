@@ -6,14 +6,6 @@ table! {
 }
 
 table! {
-    cameras (id) {
-        id -> Integer,
-        manufacturer -> Text,
-        model -> Text,
-    }
-}
-
-table! {
     people (id) {
         id -> Integer,
         slug -> Text,
@@ -53,7 +45,6 @@ table! {
         grade -> Nullable<SmallInt>,
         rotation -> SmallInt,
         is_public -> Bool,
-        camera_id -> Nullable<Integer>,
         attribution_id -> Nullable<Integer>,
         width -> Integer,
         height -> Integer,
@@ -105,7 +96,6 @@ joinable!(positions -> photos (photo_id));
 
 allow_tables_to_appear_in_same_query!(
     attributions,
-    cameras,
     people,
     photo_people,
     photo_places,

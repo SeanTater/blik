@@ -8,7 +8,6 @@ CREATE TABLE photos (
   grade SMALLINT,
   rotation SMALLINT NOT NULL,
   is_public BOOLEAN NOT NULL DEFAULT 0,
-  camera_id INT,
   attribution_id INT,
   width INT NOT NULL,
   height INT NOT NULL
@@ -92,19 +91,6 @@ CREATE TABLE positions (
 CREATE INDEX positions_photo_idx ON positions (photo_id);
 CREATE INDEX positions_lat_idx ON positions (latitude);
 CREATE INDEX positions_long_idx ON positions (longitude);
-
-
---
--- Cameras
---
-CREATE TABLE cameras (
-  id INTEGER NOT NULL PRIMARY KEY,
-  manufacturer TEXT NOT NULL,
-  model TEXT NOT NULL
-);
-
-CREATE UNIQUE INDEX cameras_idx ON cameras (manufacturer, model);
-
 
 --
 -- Attributions

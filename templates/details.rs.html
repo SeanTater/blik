@@ -1,8 +1,8 @@
 @use super::base;
-@use crate::models::{Photo, Person, Place, Tag, Camera, Coord, SizeTag};
+@use crate::models::{Photo, Person, Place, Tag, Coord, SizeTag};
 @use crate::server::{Context, Link};
 
-@(context: &Context, lpath: &[Link], people: &[Person], places: &[Place], tags: &[Tag], position: &Option<Coord>, attribution: &Option<String>, camera: &Option<Camera>, photo: &Photo)
+@(context: &Context, lpath: &[Link], people: &[Person], places: &[Place], tags: &[Tag], position: &Option<Coord>, attribution: &Option<String>, photo: &Photo)
 @:base(context, "Photo details", lpath, {
   <meta property='og:title' content='Photo @if let Some(d) = photo.date {(@d.format("%F"))}'>
   <meta property='og:type' content='image' />
@@ -28,7 +28,6 @@
     <p class="places">Places: @for p in places {<a href="/place/@p.slug">@p.place_name</a>, }</p>}
     @if let Some(ref pos) = *position {<p>Position: @pos.x @pos.y</p>}
     @if let Some(ref a) = *attribution {<p>Av: @a</p>}
-    @if let Some(ref c) = *camera {<p>Camera: @c.model (@c.manufacturer)</p>}
     </div>
   </main>
 })

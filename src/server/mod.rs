@@ -216,7 +216,6 @@ fn photo_details(id: i32, context: Context) -> Response {
                         &tphoto.load_tags(&c).unwrap(),
                         &tphoto.load_position(&c),
                         &tphoto.load_attribution(&c),
-                        &tphoto.load_camera(&c),
                         &tphoto,
                     )
                 })

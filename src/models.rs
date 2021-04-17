@@ -1,6 +1,4 @@
 use crate::schema::attributions::dsl as a;
-use crate::schema::cameras;
-use crate::schema::cameras::dsl as c;
 use crate::schema::people::dsl as h;
 use crate::schema::photo_people::dsl as ph;
 use crate::schema::photo_places::dsl as pl;
@@ -27,7 +25,6 @@ pub struct Photo {
     pub grade: Option<i16>,
     pub rotation: i16,
     pub is_public: bool,
-    pub camera_id: Option<i32>,
     pub attribution_id: Option<i32>,
     pub width: i32,
     pub height: i32,
@@ -69,7 +66,6 @@ impl Photo {
         newwidth: i32,
         newheight: i32,
         exifdate: Option<NaiveDateTime>,
-        camera: &Option<Camera>,
     ) -> Result<Option<Modification<Photo>>, Error> {
         if let Some(pic) = p::photos
             .filter(p::path.eq(&file_path.to_string()))
@@ -89,14 +85,6 @@ impl Photo {
                 diesel::update(p::photos.find(pic.id))
                     .set(p::date.eq(exifdate))
                     .execute(db)?;
-            }
-            if let Some(ref camera) = *camera {
-                if pic.camera_id != Some(camera.id) {
-                    change = true;
-                    diesel::update(p::photos.find(pic.id))
-                        .set(p::camera_id.eq(camera.id))
-                        .execute(db)?;
-                }
             }
             let pic = p::photos
                 .filter(p::path.eq(&file_path.to_string()))
@@ -118,10 +106,9 @@ impl Photo {
         newheight: i32,
         exifdate: Option<NaiveDateTime>,
         exifrotation: i16,
-        camera: Option<Camera>,
     ) -> Result<Modification<Photo>, Error> {
         if let Some(result) = Self::update_by_path(
-            db, file_path, newwidth, newheight, exifdate, &camera,
+            db, file_path, newwidth, newheight, exifdate,
         )? {
             Ok(result)
         } else {
@@ -132,7 +119,6 @@ impl Photo {
                     p::rotation.eq(exifrotation),
                     p::width.eq(newwidth),
                     p::height.eq(newheight),
-                    p::camera_id.eq(camera.map(|c| c.id)),
                 ))
                 .execute(db)?;
             let pic = p::photos
@@ -195,15 +181,13 @@ impl Photo {
             }
         }
     }
+
     pub fn load_attribution(&self, db: &SqliteConnection) -> Option<String> {
         self.attribution_id.and_then(|i| {
             a::attributions.find(i).select(a::name).first(db).ok()
         })
     }
-    pub fn load_camera(&self, db: &SqliteConnection) -> Option<Camera> {
-        self.camera_id
-            .and_then(|i| c::cameras.find(i).first(db).ok())
-    }
+
     pub fn get_size(&self, size: SizeTag) -> (u32, u32) {
         let (width, height) = (self.width, self.height);
         let scale = f64::from(size.px()) / f64::from(max(width, height));
@@ -229,7 +213,6 @@ impl Photo {
             grade: None,
             rotation: 0,
             is_public: false,
-            camera_id: None,
             attribution_id: None,
             width: 4000,
             height: 3000,
@@ -326,35 +309,6 @@ pub struct PhotoPlace {
     pub id: i32,
     pub photo_id: i32,
     pub place_id: i32,
-}
-
-#[derive(Debug, Clone, Identifiable, Queryable)]
-pub struct Camera {
-    pub id: i32,
-    pub manufacturer: String,
-    pub model: String,
-}
-
-impl Camera {
-    pub fn get_or_create(
-        db: &SqliteConnection,
-        make: &str,
-        modl: &str,
-    ) -> Result<Camera, Error> {
-        if let Some(camera) = c::cameras
-            .filter(c::manufacturer.eq(make))
-            .filter(c::model.eq(modl))
-            .first::<Camera>(db)
-            .optional()?
-        {
-            Ok(camera)
-        } else {
-            diesel::insert_into(c::cameras)
-                .values((c::manufacturer.eq(make), c::model.eq(modl)))
-                .execute(db)?;
-            return Self::get_or_create(db, make, modl);
-        }
-    }
 }
 
 #[derive(Debug, Clone)]

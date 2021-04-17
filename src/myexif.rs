@@ -98,14 +98,6 @@ impl ExifData {
             None
         }
     }
-    pub fn camera(&self) -> Option<(&str, &str)> {
-        if let (&Some(ref make), &Some(ref model)) = (&self.make, &self.model)
-        {
-            Some((make, model))
-        } else {
-            None
-        }
-    }
     pub fn position(&self) -> Option<(f64, f64)> {
         if let (Some(lat), Some(long)) = (self.lat(), self.long()) {
             Some((lat, long))
