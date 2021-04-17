@@ -40,7 +40,7 @@ fn rotate(context: Context, form: RotateForm) -> Response {
     }
     info!("Should rotate #{} by {}", form.image, form.angle);
     use crate::schema::photos::dsl::photos;
-    let c = context.db().unwrap();
+    let c = context.db();
     let c: &SqliteConnection = &c;
     if let Ok(mut image) = photos.find(form.image).first::<Photo>(c) {
         let newvalue = (360 + image.rotation + form.angle) % 360;
@@ -70,7 +70,7 @@ async fn set_tag(context: Context, form: TagForm) -> WarpResult {
     if !context.is_authorized() {
         return permission_denied();
     }
-    let c = context.db().or_reject()?;
+    let c = context.db();
     use crate::models::{PhotoTag, Tag};
     use crate::schema::tags::dsl::*;
     let get_tag = ||
@@ -119,7 +119,7 @@ async fn set_person(context: Context, form: PersonForm) -> WarpResult {
     if !context.is_authorized() {
         return permission_denied();
     }
-    let c = context.db().or_reject()?;
+    let c = context.db();
     use crate::models::{Person, PhotoPerson};
     let person = Person::get_or_create_name(&c, &form.person)
         .context("Find or create person")
@@ -156,7 +156,7 @@ async fn set_grade(context: Context, form: GradeForm) -> WarpResult {
         use crate::schema::photos::dsl::{grade, photos};
         let q =
             diesel::update(photos.find(form.image)).set(grade.eq(form.grade));
-        match q.execute(&context.db().unwrap()) {
+        match q.execute(&context.db()) {
             Ok(1) => {
                 return Ok(redirect_to_img(form.image));
             }
@@ -193,7 +193,7 @@ async fn set_location(context: Context, form: CoordForm) -> WarpResult {
 
     let (lat, lng) = ((coord.x * 1e6) as i32, (coord.y * 1e6) as i32);
     use crate::schema::positions::dsl::*;
-    let db = context.db().unwrap();
+    let db = context.db();
     match diesel::insert_into(positions)
         .values((photo_id.eq(image), latitude.eq(lat), longitude.eq(lng)))
         .execute(&db) {

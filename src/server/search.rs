@@ -16,7 +16,7 @@ use warp::http::response::Builder;
 use warp::reply::Response;
 
 pub fn search(context: Context, query: Vec<(String, String)>) -> Response {
-    let query = SearchQuery::load(query, &context.db().unwrap()).unwrap();
+    let query = SearchQuery::load(query, &context.db()).unwrap();
 
     let mut photos = Photo::query(context.is_authorized());
     if let Some(since) = query.since.as_ref() {
@@ -65,7 +65,7 @@ pub fn search(context: Context, query: Vec<(String, String)>) -> Response {
         }
     }
 
-    let c = context.db().unwrap();
+    let c = context.db();
     let photos = photos
         .order((p::date.desc(), p::id.desc()))
         .load(&c)

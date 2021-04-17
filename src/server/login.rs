@@ -22,7 +22,7 @@ pub struct NextQ {
 
 pub fn post_login(context: Context, form: LoginForm) -> Response {
     let next = sanitize_next(form.next.as_ref().map(AsRef::as_ref));
-    if let Some(user) = form.validate(&*context.db().unwrap()) {
+    if let Some(user) = form.validate(&*context.db()) {
         let token = context.make_token(&user).unwrap();
         return Builder::new()
             .header(

@@ -180,7 +180,7 @@ fn random_image(context: Context) -> Response {
         .select(id)
         .limit(1)
         .order(sql::<Integer>("random()"))
-        .first(&context.db().unwrap())
+        .first(&context.db())
     {
         info!("Random: {:?}", photo);
         redirect_to_img(photo)
@@ -191,7 +191,7 @@ fn random_image(context: Context) -> Response {
 
 fn photo_details(id: i32, context: Context) -> Response {
     use crate::schema::photos::dsl::photos;
-    let c = context.db().unwrap();
+    let c = context.db();
     if let Ok(tphoto) = photos.find(id).first::<Photo>(&c) {
         if context.is_authorized() || tphoto.is_public() {
             return Builder::new()

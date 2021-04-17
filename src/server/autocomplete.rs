@@ -46,7 +46,7 @@ pub fn auto_complete_any(context: Context, query: AcQ) -> impl Reply {
             tp::photo_id.eq_any(p::photos.select(p::id).filter(p::is_public)),
         )))
     };
-    let db = context.db().unwrap();
+    let db = context.db();
     let mut tags = query
         .order(t::tag_name)
         .limit(10)
@@ -116,7 +116,7 @@ pub fn auto_complete_tag(context: Context, query: AcQ) -> impl Reply {
         .filter(tag_name.like(query.q + "%"))
         .order(tag_name)
         .limit(10);
-    reply::json(&q.load::<String>(&context.db().unwrap()).unwrap())
+    reply::json(&q.load::<String>(&context.db()).unwrap())
 }
 
 pub fn auto_complete_person(context: Context, query: AcQ) -> impl Reply {
@@ -126,7 +126,7 @@ pub fn auto_complete_person(context: Context, query: AcQ) -> impl Reply {
         .filter(person_name.like(query.q + "%"))
         .order(person_name)
         .limit(10);
-    reply::json(&q.load::<String>(&context.db().unwrap()).unwrap())
+    reply::json(&q.load::<String>(&context.db()).unwrap())
 }
 
 #[derive(Deserialize)]

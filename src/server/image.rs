@@ -15,7 +15,7 @@ pub async fn show_image(
     context: Context,
 ) -> Result<Response, Rejection> {
     use crate::schema::photos::dsl::photos;
-    let tphoto = photos.find(img.id).first::<Photo>(&context.db().or_reject()?);
+    let tphoto = photos.find(img.id).first::<Photo>(&context.db());
     if let Ok(tphoto) = tphoto {
         if context.is_authorized() || tphoto.is_public() {
             if img.size == SizeTag::Large {

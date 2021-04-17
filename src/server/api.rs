@@ -59,7 +59,7 @@ fn w<T: Serialize>(result: ApiResult<T>) -> Response {
 }
 
 fn login(context: Context, form: LoginForm) -> ApiResult<LoginOk> {
-    let db = context.db()?;
+    let db = context.db();
     let user = form
         .validate(&db)
         .ok_or_else(|| ApiError::bad_request("login failed"))?;
@@ -114,7 +114,7 @@ impl ImgIdentifier {
 
 fn get_img(context: Context, q: ImgQuery) -> ApiResult<GetImgResult> {
     let id = q.validate().map_err(ApiError::bad_request)?;
-    let db = context.db()?;
+    let db = context.db();
     let img = id.load(&db)?.ok_or(NOT_FOUND)?;
     if !context.is_authorized() && !img.is_public() {
         return Err(NOT_FOUND);
@@ -130,7 +130,7 @@ fn make_public(context: Context, q: ImgQuery) -> ApiResult<GetImgResult> {
         });
     }
     let id = q.validate().map_err(ApiError::bad_request)?;
-    let db = context.db()?;
+    let db = context.db();
     let img = id.load(&db)?.ok_or(NOT_FOUND)?;
     use crate::schema::photos::dsl as p;
     update(p::photos.find(img.id))

@@ -13,7 +13,7 @@ pub fn links_by_time<'a>(
     range: ImgRange,
     with_date: bool,
 ) -> (Vec<PhotoLink>, Vec<(Coord, i32)>) {
-    let c = context.db().unwrap();
+    let c = context.db();
     use crate::schema::photos::dsl::{date, id};
     let photos =
         if let Some(from_date) = range.from.map(|i| date_of_img(&c, i)) {

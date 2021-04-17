@@ -14,7 +14,7 @@ use warp::reply::Response;
 
 pub fn all_years(context: Context) -> Response {
     use crate::schema::photos::dsl::{date, grade};
-    let db = context.db().unwrap();
+    let db = context.db();
     let groups = Photo::query(context.is_authorized())
         .select(sql::<(Nullable<Integer>, BigInt)>(
             "cast(strftime('%Y', date) as int) y, count(*)",
@@ -63,7 +63,7 @@ pub fn months_in_year(year: i32, context: Context) -> Response {
     use crate::schema::photos::dsl::{date, grade};
 
     let title: String = format!("Photos from {}", year);
-    let db = context.db().unwrap();
+    let db = context.db();
     let groups = Photo::query(context.is_authorized())
         .filter(date.ge(start_of_year(year)))
         .filter(date.lt(start_of_year(year + 1)))
@@ -136,7 +136,7 @@ pub fn days_in_month(year: i32, month: u32, context: Context) -> Response {
 
     let lpath: Vec<Link> = vec![Link::year(year)];
     let title: String = format!("Photos from {} {}", monthname(month), year);
-    let db = context.db().unwrap();
+    let db = context.db();
     let groups = Photo::query(context.is_authorized())
         .filter(date.ge(start_of_month(year, month)))
         .filter(date.lt(start_of_month(year, month + 1)))
@@ -211,7 +211,7 @@ pub fn all_null_date(context: Context) -> Response {
                     .filter(date.is_null())
                     .order(path.asc())
                     .limit(500)
-                    .load(&context.db().unwrap())
+                    .load(&context.db())
                     .unwrap()
                     .iter()
                     .map(PhotoLink::no_title)
@@ -270,7 +270,7 @@ pub fn on_this_day(context: Context) -> Response {
         let today = Local::now();
         (today.month(), today.day())
     };
-    let db = context.db().unwrap();
+    let db = context.db();
     let pos = Photo::query(context.is_authorized())
         .inner_join(positions)
         .filter(
@@ -338,7 +338,7 @@ pub fn on_this_day(context: Context) -> Response {
 
 pub fn next_image(context: Context, param: FromParam) -> Response {
     use crate::schema::photos::dsl::{date, id};
-    let db = context.db().unwrap();
+    let db = context.db();
     if let Some(from_date) = date_of_img(&db, param.from) {
         let q = Photo::query(context.is_authorized())
             .select(id)
@@ -356,7 +356,7 @@ pub fn next_image(context: Context, param: FromParam) -> Response {
 
 pub fn prev_image(context: Context, param: FromParam) -> Response {
     use crate::schema::photos::dsl::{date, id};
-    let db = context.db().unwrap();
+    let db = context.db();
     if let Some(from_date) = date_of_img(&db, param.from) {
         let q = Photo::query(context.is_authorized())
             .select(id)

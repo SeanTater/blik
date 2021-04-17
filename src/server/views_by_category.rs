@@ -71,7 +71,7 @@ fn person_all(context: Context) -> Response {
                 &context,
                 &query
                     .order(person_name)
-                    .load(&context.db().unwrap())
+                    .load(&context.db())
                     .expect("list people"),
             )
         })
@@ -80,7 +80,7 @@ fn person_all(context: Context) -> Response {
 
 fn person_one(context: Context, tslug: String, range: ImgRange) -> Response {
     use crate::schema::people::dsl::{people, slug};
-    let c = context.db().unwrap();
+    let c = context.db();
     if let Ok(person) = people.filter(slug.eq(tslug)).first::<Person>(&c) {
         use crate::schema::photo_people::dsl::{
             person_id, photo_id, photo_people,
@@ -119,7 +119,7 @@ fn tag_all(context: Context) -> Response {
             templates::tags(
                 o,
                 &context,
-                &query.load(&context.db().unwrap()).expect("List tags"),
+                &query.load(&context.db()).expect("List tags"),
             )
         })
         .unwrap()
@@ -129,7 +129,7 @@ fn tag_one(context: Context, tslug: String, range: ImgRange) -> Response {
     use crate::schema::tags::dsl::{slug, tags};
     if let Ok(tag) = tags
         .filter(slug.eq(tslug))
-        .first::<Tag>(&context.db().unwrap())
+        .first::<Tag>(&context.db())
     {
         use crate::schema::photo_tags::dsl::{photo_id, photo_tags, tag_id};
         use crate::schema::photos::dsl::id;
@@ -164,7 +164,7 @@ fn place_all(context: Context) -> Response {
                 &context,
                 &query
                     .order(place_name)
-                    .load(&context.db().unwrap())
+                    .load(&context.db())
                     .expect("List places"),
             )
         })
@@ -175,7 +175,7 @@ fn place_one(context: Context, tslug: String, range: ImgRange) -> Response {
     use crate::schema::places::dsl::{places, slug};
     if let Ok(place) = places
         .filter(slug.eq(tslug))
-        .first::<Place>(&context.db().unwrap())
+        .first::<Place>(&context.db())
     {
         use crate::schema::photo_places::dsl::{
             photo_id, photo_places, place_id,

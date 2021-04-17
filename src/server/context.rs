@@ -101,8 +101,8 @@ pub struct Context {
 }
 
 impl Context {
-    pub fn db(&self) -> Result<PooledSqlite, diesel::r2d2::PoolError> {
-        Ok(self.global.db_pool.get()?)
+    pub fn db(&self) -> PooledSqlite {
+        self.global.db_pool.get().expect("Failed to connect ot database")
     }
     pub fn db_pool(&self) -> SqlitePool {
         self.global.db_pool.clone()
