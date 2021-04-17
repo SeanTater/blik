@@ -20,7 +20,6 @@ use self::search::*;
 use self::views_by_category::*;
 use self::views_by_date::*;
 use super::DirOpt;
-use crate::fetch_places::OverpassOpt;
 use crate::models::Photo;
 use crate::pidfiles::handle_pid_file;
 use crate::templates::{self, Html, RenderRucte};
@@ -41,8 +40,6 @@ use warp::{self, Filter, Rejection, Reply};
 pub struct Args {
     #[structopt(flatten)]
     photos: DirOpt,
-    #[structopt(flatten)]
-    overpass: OverpassOpt,
 
     /// Write (and read, if --replace) a pid file with the name
     /// given as <PIDFILE>.

@@ -17,7 +17,7 @@ pub fn all_years(context: Context) -> Response {
     let db = context.db().unwrap();
     let groups = Photo::query(context.is_authorized())
         .select(sql::<(Nullable<Integer>, BigInt)>(
-            "cast(extract(year from date) as int) y, count(*)",
+            "cast(strftime('%Y', date) as int) y, count(*)",
         ))
         .group_by(sql::<Nullable<Integer>>("y"))
         .order(sql::<Nullable<Integer>>("y").desc())
@@ -68,7 +68,7 @@ pub fn months_in_year(year: i32, context: Context) -> Response {
         .filter(date.ge(start_of_year(year)))
         .filter(date.lt(start_of_year(year + 1)))
         .select(sql::<(Integer, BigInt)>(
-            "cast(extract(month from date) as int) m, count(*)",
+            "cast(strftime('%M', date) as int) m, count(*)",
         ))
         .group_by(sql::<Integer>("m"))
         .order(sql::<Integer>("m").desc())
@@ -141,7 +141,7 @@ pub fn days_in_month(year: i32, month: u32, context: Context) -> Response {
         .filter(date.ge(start_of_month(year, month)))
         .filter(date.lt(start_of_month(year, month + 1)))
         .select(sql::<(Integer, BigInt)>(
-            "cast(extract(day from date) as int) d, count(*)",
+            "cast(strftime('%D', date) as int) d, count(*)",
         ))
         .group_by(sql::<Integer>("d"))
         .order(sql::<Integer>("d").desc())
