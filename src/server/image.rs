@@ -47,7 +47,7 @@ pub async fn show_image(
             } else {
                 let data = get_image_data(&context, &tphoto, img.size)
                     .await
-                    .expect("Get image data");
+                    .map_err(|x| warp::reject::custom(AnyhowRejection::from(x)))?;
                 return Ok(Builder::new()
                     .status(StatusCode::OK)
                     .header(header::CONTENT_TYPE, mime::IMAGE_JPEG.as_ref())
@@ -58,6 +58,15 @@ pub async fn show_image(
         }
     }
     Ok(not_found(&context))
+}
+/// Make anything that can be an anyhow Error into a Rejection
+#[derive(Debug)]
+struct AnyhowRejection(anyhow::Error);
+impl warp::reject::Reject for AnyhowRejection {}
+impl<X> From<X> for AnyhowRejection where X: Into<anyhow::Error> {
+    fn from(x: X) -> Self {
+        AnyhowRejection(x.into())
+    }
 }
 
 /// A client-side / url file name for a file.
