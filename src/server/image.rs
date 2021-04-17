@@ -8,14 +8,14 @@ use warp::http::response::Builder;
 use warp::http::{header, StatusCode};
 use warp::reply::Response;
 use warp::Rejection;
-use super::AnyhowRejection;
+use super::AnyhowRejectionExt;
 
 pub async fn show_image(
     img: ImgName,
     context: Context,
 ) -> Result<Response, Rejection> {
     use crate::schema::photos::dsl::photos;
-    let tphoto = photos.find(img.id).first::<Photo>(&context.db().unwrap());
+    let tphoto = photos.find(img.id).first::<Photo>(&context.db().or_reject()?);
     if let Ok(tphoto) = tphoto {
         if context.is_authorized() || tphoto.is_public() {
             if img.size == SizeTag::Large {
@@ -37,24 +37,21 @@ pub async fn show_image(
                             )
                             .far_expires()
                             .body(buf.into())
-                            .unwrap());
+                            .or_reject()?);
                     } else {
-                        return Ok(error_response(
-                            StatusCode::INTERNAL_SERVER_ERROR,
-                        )
-                        .unwrap());
+                        return error_response(StatusCode::INTERNAL_SERVER_ERROR);
                     }
                 }
             } else {
                 let data = get_image_data(&context, &tphoto, img.size)
                     .await
-                    .map_err(|x| warp::reject::custom(AnyhowRejection::from(x)))?;
+                    .or_reject()?;
                 return Ok(Builder::new()
                     .status(StatusCode::OK)
                     .header(header::CONTENT_TYPE, mime::IMAGE_JPEG.as_ref())
                     .far_expires()
                     .body(data.into())
-                    .unwrap());
+                    .or_reject()?);
             }
         }
     }

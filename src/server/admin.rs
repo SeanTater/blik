@@ -1,5 +1,5 @@
 //! Admin-only views, generally called by javascript.
-use super::{not_found, permission_denied, redirect_to_img, Context, AnyhowRejection};
+use super::{not_found, permission_denied, redirect_to_img, Context, AnyhowRejection, AnyhowRejectionExt};
 use crate::models::{Coord, Photo};
 use anyhow::Context as AContext;
 use diesel::{self, prelude::*};
@@ -70,7 +70,7 @@ async fn set_tag(context: Context, form: TagForm) -> WarpResult {
     if !context.is_authorized() {
         return permission_denied();
     }
-    let c = context.db().unwrap();
+    let c = context.db().or_reject()?;
     use crate::models::{PhotoTag, Tag};
     use crate::schema::tags::dsl::*;
     let get_tag = ||
@@ -86,10 +86,10 @@ async fn set_tag(context: Context, form: TagForm) -> WarpResult {
             ))
             .execute(&c)
             .context("Get or create tag")
-            .map_err(AnyhowRejection::from)?;
+            .or_reject()?;
             get_tag()
                 .context("Get or create tag, next read")
-                .map_err(AnyhowRejection::from)?
+                .or_reject()?
         }
     };
     use crate::schema::photo_tags::dsl::*;
@@ -104,7 +104,7 @@ async fn set_tag(context: Context, form: TagForm) -> WarpResult {
             .values((photo_id.eq(form.image), tag_id.eq(tag.id)))
             .execute(&c)
             .context("Tag a photo")
-            .map_err(AnyhowRejection::from)?;
+            .or_reject()?;
     }
     Ok(redirect_to_img(form.image))
 }
@@ -119,11 +119,11 @@ async fn set_person(context: Context, form: PersonForm) -> WarpResult {
     if !context.is_authorized() {
         return permission_denied();
     }
-    let c = context.db().unwrap();
+    let c = context.db().or_reject()?;
     use crate::models::{Person, PhotoPerson};
     let person = Person::get_or_create_name(&c, &form.person)
         .context("Find or create person")
-        .map_err(AnyhowRejection::from)?;
+        .or_reject()?;
     use crate::schema::photo_people::dsl::*;
     let q = photo_people
         .filter(photo_id.eq(form.image))
@@ -136,7 +136,7 @@ async fn set_person(context: Context, form: PersonForm) -> WarpResult {
             .values((photo_id.eq(form.image), person_id.eq(person.id)))
             .execute(&c)
             .context("Name person in photo")
-            .map_err(AnyhowRejection::from)?;
+            .or_reject()?;
     }
     Ok(redirect_to_img(form.image))
 }
@@ -204,7 +204,7 @@ async fn set_location(context: Context, form: CoordForm) -> WarpResult {
             .execute(&db)
         } 
     }.context("Insert into image positions")
-    .map_err(AnyhowRejection::from)?;
+    .or_reject()?;
     Ok(redirect_to_img(form.image))
 }
 

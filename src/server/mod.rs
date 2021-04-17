@@ -286,3 +286,13 @@ impl<X> From<X> for AnyhowRejection where X: Into<anyhow::Error> {
         AnyhowRejection(x.into())
     }
 }
+
+/// Make any error into a rejection
+trait AnyhowRejectionExt<X> {
+    fn or_reject(self) -> Result<X, AnyhowRejection>;
+}
+impl<X, Y> AnyhowRejectionExt<X> for Result<X, Y> where Y: Into<anyhow::Error> {
+    fn or_reject(self) -> Result<X, AnyhowRejection> {
+        self.map_err(AnyhowRejection::from)
+    }
+}
