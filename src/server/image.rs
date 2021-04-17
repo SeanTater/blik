@@ -8,6 +8,7 @@ use warp::http::response::Builder;
 use warp::http::{header, StatusCode};
 use warp::reply::Response;
 use warp::Rejection;
+use super::AnyhowRejection;
 
 pub async fn show_image(
     img: ImgName,
@@ -58,15 +59,6 @@ pub async fn show_image(
         }
     }
     Ok(not_found(&context))
-}
-/// Make anything that can be an anyhow Error into a Rejection
-#[derive(Debug)]
-struct AnyhowRejection(anyhow::Error);
-impl warp::reject::Reject for AnyhowRejection {}
-impl<X> From<X> for AnyhowRejection where X: Into<anyhow::Error> {
-    fn from(x: X) -> Self {
-        AnyhowRejection(x.into())
-    }
 }
 
 /// A client-side / url file name for a file.

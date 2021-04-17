@@ -275,3 +275,14 @@ pub struct ImgRange {
     pub from: Option<i32>,
     pub to: Option<i32>,
 }
+
+
+/// Make anything that can be an anyhow Error into a Rejection
+#[derive(Debug)]
+struct AnyhowRejection(anyhow::Error);
+impl warp::reject::Reject for AnyhowRejection {}
+impl<X> From<X> for AnyhowRejection where X: Into<anyhow::Error> {
+    fn from(x: X) -> Self {
+        AnyhowRejection(x.into())
+    }
+}

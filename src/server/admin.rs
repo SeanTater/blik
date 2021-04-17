@@ -1,6 +1,7 @@
 //! Admin-only views, generally called by javascript.
-use super::{not_found, permission_denied, redirect_to_img, Context};
+use super::{not_found, permission_denied, redirect_to_img, Context, AnyhowRejection};
 use crate::models::{Coord, Photo};
+use anyhow::Context as AContext;
 use diesel::{self, prelude::*};
 use log::{info, warn};
 use serde::Deserialize;
@@ -84,8 +85,11 @@ async fn set_tag(context: Context, form: TagForm) -> WarpResult {
                 slug.eq(&slugify(&form.tag)),
             ))
             .execute(&c)
-            .expect("Get or create tag");
-            get_tag().expect("Get or create tag, next read")
+            .context("Get or create tag")
+            .map_err(AnyhowRejection::from)?;
+            get_tag()
+                .context("Get or create tag, next read")
+                .map_err(AnyhowRejection::from)?
         }
     };
     use crate::schema::photo_tags::dsl::*;
@@ -99,7 +103,8 @@ async fn set_tag(context: Context, form: TagForm) -> WarpResult {
         diesel::insert_into(photo_tags)
             .values((photo_id.eq(form.image), tag_id.eq(tag.id)))
             .execute(&c)
-            .expect("Tag a photo");
+            .context("Tag a photo")
+            .map_err(AnyhowRejection::from)?;
     }
     Ok(redirect_to_img(form.image))
 }
@@ -117,7 +122,8 @@ async fn set_person(context: Context, form: PersonForm) -> WarpResult {
     let c = context.db().unwrap();
     use crate::models::{Person, PhotoPerson};
     let person = Person::get_or_create_name(&c, &form.person)
-        .expect("Find or create person");
+        .context("Find or create person")
+        .map_err(AnyhowRejection::from)?;
     use crate::schema::photo_people::dsl::*;
     let q = photo_people
         .filter(photo_id.eq(form.image))
@@ -129,7 +135,8 @@ async fn set_person(context: Context, form: PersonForm) -> WarpResult {
         diesel::insert_into(photo_people)
             .values((photo_id.eq(form.image), person_id.eq(person.id)))
             .execute(&c)
-            .expect("Name person in photo");
+            .context("Name person in photo")
+            .map_err(AnyhowRejection::from)?;
     }
     Ok(redirect_to_img(form.image))
 }
@@ -196,7 +203,8 @@ async fn set_location(context: Context, form: CoordForm) -> WarpResult {
             .set((latitude.eq(lat), longitude.eq(lng)))
             .execute(&db)
         } 
-    }.expect("Insert into image positions");
+    }.context("Insert into image positions")
+    .map_err(AnyhowRejection::from)?;
     Ok(redirect_to_img(form.image))
 }
 

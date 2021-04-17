@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use crate::models::{Camera, Modification, Photo};
 use crate::myexif::ExifData;
 use crate::photosdir::PhotosDir;
@@ -109,7 +109,7 @@ fn save_photo(
                     longitude.eq((long * 1e6) as i32),
                 ))
                 .execute(db)
-                .expect("Insert image position");
+                .context("Insert image position")?;
         }
     }
     Ok(())
