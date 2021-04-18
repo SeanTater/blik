@@ -1,7 +1,7 @@
 use anyhow::Result;
-use diesel::sqlite::SqliteConnection;
 use diesel::prelude::*;
 use diesel::result::Error as DieselError;
+use diesel::sqlite::SqliteConnection;
 use diesel::update;
 use std::fs::File;
 use std::io::prelude::*;

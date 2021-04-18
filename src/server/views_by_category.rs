@@ -127,10 +127,7 @@ fn tag_all(context: Context) -> Response {
 
 fn tag_one(context: Context, tslug: String, range: ImgRange) -> Response {
     use crate::schema::tags::dsl::{slug, tags};
-    if let Ok(tag) = tags
-        .filter(slug.eq(tslug))
-        .first::<Tag>(&context.db())
-    {
+    if let Ok(tag) = tags.filter(slug.eq(tslug)).first::<Tag>(&context.db()) {
         use crate::schema::photo_tags::dsl::{photo_id, photo_tags, tag_id};
         use crate::schema::photos::dsl::id;
         let photos = Photo::query(context.is_authorized()).filter(
@@ -173,9 +170,8 @@ fn place_all(context: Context) -> Response {
 
 fn place_one(context: Context, tslug: String, range: ImgRange) -> Response {
     use crate::schema::places::dsl::{places, slug};
-    if let Ok(place) = places
-        .filter(slug.eq(tslug))
-        .first::<Place>(&context.db())
+    if let Ok(place) =
+        places.filter(slug.eq(tslug)).first::<Place>(&context.db())
     {
         use crate::schema::photo_places::dsl::{
             photo_id, photo_places, place_id,

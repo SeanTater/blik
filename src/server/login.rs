@@ -6,7 +6,6 @@ use warp::http::header;
 use warp::http::response::Builder;
 use warp::reply::Response;
 
-
 pub fn get_login(context: Context, param: NextQ) -> Response {
     info!("Got request for login form.  Param: {:?}", param);
     let next = sanitize_next(param.next.as_ref().map(AsRef::as_ref));

@@ -1,13 +1,12 @@
 use anyhow::Result;
-use diesel::sqlite::SqliteConnection;
 use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
+use diesel::sqlite::SqliteConnection;
 use diesel::{Connection, ConnectionError};
 use log::debug;
 use std::time::{Duration, Instant};
 
 pub type SqlitePool = Pool<ConnectionManager<SqliteConnection>>;
 pub type PooledSqlite = PooledConnection<ConnectionManager<SqliteConnection>>;
-
 
 pub fn connect() -> Result<SqliteConnection, ConnectionError> {
     let time = Instant::now();

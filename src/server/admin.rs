@@ -1,5 +1,8 @@
 //! Admin-only views, generally called by javascript.
-use super::{not_found, permission_denied, redirect_to_img, Context, AnyhowRejectionExt, WarpResult};
+use super::{
+    not_found, permission_denied, redirect_to_img, AnyhowRejectionExt,
+    Context, WarpResult,
+};
 use crate::models::{Coord, Photo};
 use anyhow::Context as AContext;
 use diesel::{self, prelude::*};
@@ -71,20 +74,15 @@ async fn set_tag(context: Context, form: TagForm) -> WarpResult {
     let c = context.db();
     use crate::models::{PhotoTag, Tag};
     use crate::schema::tags::dsl::*;
-    let get_tag = ||
-        tags.filter(tag_name.like(&form.tag))
-            .first::<Tag>(&c);
+    let get_tag = || tags.filter(tag_name.like(&form.tag)).first::<Tag>(&c);
     let tag = match get_tag() {
         Ok(tag) => tag,
         Err(_) => {
             diesel::insert_into(tags)
-            .values((
-                tag_name.eq(&form.tag),
-                slug.eq(&slugify(&form.tag)),
-            ))
-            .execute(&c)
-            .context("Get or create tag")
-            .or_reject()?;
+                .values((tag_name.eq(&form.tag), slug.eq(&slugify(&form.tag))))
+                .execute(&c)
+                .context("Get or create tag")
+                .or_reject()?;
             get_tag()
                 .context("Get or create tag, next read")
                 .or_reject()?
@@ -194,14 +192,14 @@ async fn set_location(context: Context, form: CoordForm) -> WarpResult {
     let db = context.db();
     match diesel::insert_into(positions)
         .values((photo_id.eq(image), latitude.eq(lat), longitude.eq(lng)))
-        .execute(&db) {
+        .execute(&db)
+    {
         Ok(_) => Ok(0),
-        Err(_) => {
-            diesel::update(positions.find(image))
+        Err(_) => diesel::update(positions.find(image))
             .set((latitude.eq(lat), longitude.eq(lng)))
-            .execute(&db)
-        } 
-    }.context("Insert into image positions")
+            .execute(&db),
+    }
+    .context("Insert into image positions")
     .or_reject()?;
     Ok(redirect_to_img(form.image))
 }

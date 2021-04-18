@@ -1,16 +1,16 @@
 use super::splitlist::{get_positions, split_to_group_links};
 use super::urlstring::UrlString;
 use super::{Context, RenderRucte};
-use anyhow::Result;
 use crate::models::{Facet, Person, Photo, Place, Tag};
 use crate::schema::photo_people::dsl as pp;
 use crate::schema::photo_places::dsl as pl;
 use crate::schema::photo_tags::dsl as pt;
 use crate::schema::photos::dsl as p;
 use crate::templates;
+use anyhow::Result;
 use chrono::{NaiveDate, NaiveDateTime, NaiveTime};
-use diesel::sqlite::SqliteConnection;
 use diesel::prelude::*;
+use diesel::sqlite::SqliteConnection;
 use log::warn;
 use warp::http::response::Builder;
 use warp::reply::Response;

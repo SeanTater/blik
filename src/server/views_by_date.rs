@@ -2,7 +2,7 @@ use super::splitlist::links_by_time;
 use super::{not_found, redirect_to_img, Context, ImgRange, Link, PhotoLink};
 use crate::models::{Photo, SizeTag};
 use crate::templates::{self, RenderRucte};
-use chrono::naive::{NaiveDate, NaiveDateTime};
+use chrono::naive::NaiveDateTime;
 use chrono::{Datelike, Local};
 use diesel::dsl::sql;
 use diesel::prelude::*;
@@ -13,20 +13,18 @@ use warp::http::response::Builder;
 use warp::reply::Response;
 
 pub fn all_years(context: Context) -> Response {
-    use crate::schema::photos::dsl::{year, date, grade};
+    use crate::schema::photos::dsl::{date, grade, year};
     let db = context.db();
     let groups = Photo::query(context.is_authorized())
-        .select(sql::<(Integer, BigInt)>(
-            "year, count(*)",
-        ))
+        .select(sql::<(Integer, BigInt)>("year, count(*)"))
         .group_by(sql::<Integer>("year"))
         .order(sql::<Integer>("year").desc())
         .load::<(i32, i64)>(&db)
         .unwrap()
         .iter()
         .map(|&(group_year, count)| {
-            let photo : Photo = Photo::query(context.is_authorized())
-                .filter(year.eq(group_year))    
+            let photo: Photo = Photo::query(context.is_authorized())
+                .filter(year.eq(group_year))
                 .order((grade.desc(), date.asc()))
                 .limit(1)
                 .first(&db)
@@ -49,15 +47,13 @@ pub fn all_years(context: Context) -> Response {
 }
 
 pub fn months_in_year(target_year: i32, context: Context) -> Response {
-    use crate::schema::photos::dsl::{year, month, date, grade};
+    use crate::schema::photos::dsl::{date, grade, month, year};
 
     let title: String = format!("Photos from {}", target_year);
     let db = context.db();
     let groups = Photo::query(context.is_authorized())
         .filter(year.eq(target_year))
-        .select(sql::<(Integer, BigInt)>(
-            "month, count(*)",
-        ))
+        .select(sql::<(Integer, BigInt)>("month, count(*)"))
         .group_by(sql::<Integer>("month"))
         .order(sql::<Integer>("month").desc())
         .load::<(i32, i64)>(&db)
@@ -108,18 +104,21 @@ pub fn months_in_year(target_year: i32, context: Context) -> Response {
     }
 }
 
-pub fn days_in_month(target_year: i32, target_month: i32, context: Context) -> Response {
-    use crate::schema::photos::dsl::{year, month, day, date, grade};
+pub fn days_in_month(
+    target_year: i32,
+    target_month: i32,
+    context: Context,
+) -> Response {
+    use crate::schema::photos::dsl::{date, day, grade, month, year};
 
     let lpath: Vec<Link> = vec![Link::year(target_year)];
-    let title: String = format!("Photos from {} {}", monthname(target_month), target_year);
+    let title: String =
+        format!("Photos from {} {}", monthname(target_month), target_year);
     let db = context.db();
     let groups = Photo::query(context.is_authorized())
         .filter(year.eq(target_year))
         .filter(month.eq(target_month as i32))
-        .select(sql::<(Integer, BigInt)>(
-            "day, count(*)",
-        ))
+        .select(sql::<(Integer, BigInt)>("day, count(*)"))
         .group_by(sql::<Integer>("day"))
         .order(sql::<Integer>("day").desc())
         .load::<(i32, i64)>(&db)
@@ -137,7 +136,10 @@ pub fn days_in_month(target_year: i32, target_month: i32, context: Context) -> R
 
             PhotoLink {
                 title: Some(format!("{}", group_day)),
-                href: format!("/{}/{}/{}", target_year, target_month, group_day),
+                href: format!(
+                    "/{}/{}/{}",
+                    target_year, target_month, group_day
+                ),
                 lable: Some(format!("{} pictures", count)),
                 id: photo.id,
                 size: photo.get_size(SizeTag::Small),
@@ -204,7 +206,7 @@ pub fn all_for_day(
     range: ImgRange,
     context: Context,
 ) -> Response {
-    use crate::schema::photos::dsl::{year, month, day};
+    use crate::schema::photos::dsl::{day, month, year};
 
     let photos = Photo::query(context.is_authorized())
         .filter(year.eq(target_year))
@@ -226,7 +228,10 @@ pub fn all_for_day(
                         monthname(target_month),
                         target_year
                     ),
-                    &[Link::year(target_year), Link::month(target_year, target_month)],
+                    &[
+                        Link::year(target_year),
+                        Link::month(target_year, target_month),
+                    ],
                     &links,
                     &coords,
                 )
@@ -236,7 +241,7 @@ pub fn all_for_day(
 }
 
 pub fn on_this_day(context: Context) -> Response {
-    use crate::schema::photos::dsl::{year, month, day, date, grade};
+    use crate::schema::photos::dsl::{date, day, grade, month, year};
     use crate::schema::positions::dsl::{
         latitude, longitude, photo_id, positions,
     };
@@ -263,12 +268,14 @@ pub fn on_this_day(context: Context) -> Response {
             templates::index(
                 o,
                 &context,
-                &format!("Photos from {} {}", target_day, monthname(target_month)),
+                &format!(
+                    "Photos from {} {}",
+                    target_day,
+                    monthname(target_month)
+                ),
                 &[],
                 &Photo::query(context.is_authorized())
-                    .select(sql::<(Integer, BigInt)>(
-                        "year, count(*)",
-                    ))
+                    .select(sql::<(Integer, BigInt)>("year, count(*)"))
                     .group_by(sql::<Integer>("year"))
                     .filter(month.eq(target_month as i32))
                     .filter(day.eq(target_day as i32))
@@ -288,7 +295,10 @@ pub fn on_this_day(context: Context) -> Response {
 
                         PhotoLink {
                             title: Some(format!("{}", group_year)),
-                            href: format!("/{}/{}/{}", group_year, target_month, target_day),
+                            href: format!(
+                                "/{}/{}/{}",
+                                group_year, target_month, target_day
+                            ),
                             lable: Some(format!("{} pictures", count)),
                             id: photo.id,
                             size: photo.get_size(SizeTag::Small),
@@ -342,7 +352,10 @@ pub struct FromParam {
     from: i32,
 }
 
-pub fn date_of_img(db: &SqliteConnection, photo_id: i32) -> Option<NaiveDateTime> {
+pub fn date_of_img(
+    db: &SqliteConnection,
+    photo_id: i32,
+) -> Option<NaiveDateTime> {
     use crate::schema::photos::dsl::{date, photos};
     photos.find(photo_id).select(date).first(db).unwrap_or(None)
 }

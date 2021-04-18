@@ -3,8 +3,8 @@ use super::views_by_date::date_of_img;
 use super::{Context, ImgRange, PhotoLink};
 use crate::models::{Coord, Photo};
 use crate::schema::photos;
-use diesel::sqlite::{Sqlite, SqliteConnection};
 use diesel::prelude::*;
+use diesel::sqlite::{Sqlite, SqliteConnection};
 use log::{debug, info, warn};
 
 pub fn links_by_time<'a>(
@@ -26,10 +26,7 @@ pub fn links_by_time<'a>(
     } else {
         photos
     };
-    let photos = photos
-        .order((date.desc(), id.desc()))
-        .load(&c)
-        .unwrap();
+    let photos = photos.order((date.desc(), id.desc())).load(&c).unwrap();
     let baseurl = UrlString::new(context.path_without_query());
     (
         split_to_group_links(&photos, &baseurl, with_date),
@@ -57,7 +54,10 @@ pub fn split_to_group_links(
     }
 }
 
-pub fn get_positions(photos: &[Photo], c: &SqliteConnection) -> Vec<(Coord, i32)> {
+pub fn get_positions(
+    photos: &[Photo],
+    c: &SqliteConnection,
+) -> Vec<(Coord, i32)> {
     use crate::schema::positions::dsl::*;
     positions
         .filter(photo_id.eq_any(photos.iter().map(|p| p.id)))

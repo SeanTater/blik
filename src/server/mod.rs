@@ -205,7 +205,11 @@ fn photo_details(id: i32, context: Context) -> Response {
                                 vec![
                                     Link::year(d.year()),
                                     Link::month(d.year(), d.month() as i32),
-                                    Link::day(d.year(), d.month() as i32, d.day() as i32),
+                                    Link::day(
+                                        d.year(),
+                                        d.month() as i32,
+                                        d.day() as i32,
+                                    ),
                                     Link::prev(tphoto.id),
                                     Link::next(tphoto.id),
                                 ]
@@ -275,12 +279,14 @@ pub struct ImgRange {
     pub to: Option<i32>,
 }
 
-
 /// Make anything that can be an anyhow Error into a Rejection
 #[derive(Debug)]
 struct AnyhowRejection(anyhow::Error);
 impl warp::reject::Reject for AnyhowRejection {}
-impl<X> From<X> for AnyhowRejection where X: Into<anyhow::Error> {
+impl<X> From<X> for AnyhowRejection
+where
+    X: Into<anyhow::Error>,
+{
     fn from(x: X) -> Self {
         AnyhowRejection(x.into())
     }
@@ -290,7 +296,10 @@ impl<X> From<X> for AnyhowRejection where X: Into<anyhow::Error> {
 trait AnyhowRejectionExt<X> {
     fn or_reject(self) -> Result<X, AnyhowRejection>;
 }
-impl<X, Y> AnyhowRejectionExt<X> for Result<X, Y> where Y: Into<anyhow::Error> {
+impl<X, Y> AnyhowRejectionExt<X> for Result<X, Y>
+where
+    Y: Into<anyhow::Error>,
+{
     fn or_reject(self) -> Result<X, AnyhowRejection> {
         self.map_err(AnyhowRejection::from)
     }

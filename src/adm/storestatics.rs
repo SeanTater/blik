@@ -1,5 +1,5 @@
-use anyhow::Result;
 use crate::templates::statics::STATICS;
+use anyhow::Result;
 use brotli::enc::backward_references::BrotliEncoderParams;
 use brotli::BrotliCompress;
 use flate2::{Compression, GzBuilder};

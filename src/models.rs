@@ -8,11 +8,11 @@ use crate::schema::photos::dsl as p;
 use crate::schema::places::dsl as l;
 use crate::schema::positions::dsl as pos;
 use crate::schema::tags::dsl as t;
-use chrono::{Datelike, naive::NaiveDateTime};
-use diesel::sqlite::{Sqlite, SqliteConnection};
+use chrono::{naive::NaiveDateTime, Datelike};
 use diesel::prelude::*;
 use diesel::result::Error;
 use diesel::sql_types::Integer;
+use diesel::sqlite::{Sqlite, SqliteConnection};
 use log::error;
 use slug::slugify;
 use std::cmp::max;
@@ -110,9 +110,9 @@ impl Photo {
         exifdate: Option<NaiveDateTime>,
         exifrotation: i16,
     ) -> Result<Modification<Photo>, Error> {
-        if let Some(result) = Self::update_by_path(
-            db, file_path, newwidth, newheight, exifdate,
-        )? {
+        if let Some(result) =
+            Self::update_by_path(db, file_path, newwidth, newheight, exifdate)?
+        {
             Ok(result)
         } else {
             diesel::insert_into(p::photos)
@@ -122,9 +122,11 @@ impl Photo {
                     p::rotation.eq(exifrotation),
                     p::width.eq(newwidth),
                     p::height.eq(newheight),
-                    p::year.eq(exifdate.map(|d| d.year()).unwrap_or(2000) as i32),
-                    p::month.eq(exifdate.map(|d| d.month()).unwrap_or(1) as i32),
-                    p::day.eq(exifdate.map(|d| d.day()).unwrap_or(1) as i32)
+                    p::year
+                        .eq(exifdate.map(|d| d.year()).unwrap_or(2000) as i32),
+                    p::month
+                        .eq(exifdate.map(|d| d.month()).unwrap_or(1) as i32),
+                    p::day.eq(exifdate.map(|d| d.day()).unwrap_or(1) as i32),
                 ))
                 .execute(db)?;
             let pic = p::photos
@@ -149,7 +151,10 @@ impl Photo {
             .load(db)
     }
 
-    pub fn load_places(&self, db: &SqliteConnection) -> Result<Vec<Place>, Error> {
+    pub fn load_places(
+        &self,
+        db: &SqliteConnection,
+    ) -> Result<Vec<Place>, Error> {
         l::places
             .filter(
                 l::id.eq_any(
@@ -269,16 +274,14 @@ impl Person {
     ) -> Result<Person, Error> {
         match h::people
             .filter(h::person_name.like(name))
-            .first::<Person>(db) {
+            .first::<Person>(db)
+        {
             Ok(person) => Ok(person),
             Err(_) => {
                 let slug = slugify(name);
                 diesel::insert_into(h::people)
-                .values((
-                    h::person_name.eq(name),
-                    h::slug.eq(&slug),
-                ))
-                .execute(db)?;
+                    .values((h::person_name.eq(name), h::slug.eq(&slug)))
+                    .execute(db)?;
                 h::people.filter(h::slug.eq(slug)).first(db)
             }
         }

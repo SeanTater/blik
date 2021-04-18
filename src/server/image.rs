@@ -1,3 +1,4 @@
+use super::AnyhowRejectionExt;
 use super::BuilderExt;
 use super::{error_response, not_found, Context};
 use crate::models::{Photo, SizeTag};
@@ -8,7 +9,6 @@ use warp::http::response::Builder;
 use warp::http::{header, StatusCode};
 use warp::reply::Response;
 use warp::Rejection;
-use super::AnyhowRejectionExt;
 
 pub async fn show_image(
     img: ImgName,
@@ -39,7 +39,9 @@ pub async fn show_image(
                             .body(buf.into())
                             .or_reject()?);
                     } else {
-                        return error_response(StatusCode::INTERNAL_SERVER_ERROR);
+                        return error_response(
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                        );
                     }
                 }
             } else {

@@ -1,11 +1,11 @@
-use anyhow::{Context, Result};
 use crate::models::{Modification, Photo};
 use crate::myexif::ExifData;
 use crate::photosdir::PhotosDir;
 use crate::DirOpt;
+use anyhow::{Context, Result};
 use diesel::insert_into;
-use diesel::sqlite::SqliteConnection;
 use diesel::prelude::*;
+use diesel::sqlite::SqliteConnection;
 use log::{debug, info, warn};
 use std::path::Path;
 use structopt::StructOpt;
@@ -26,14 +26,12 @@ impl Findphotos {
         let db = crate::dbopt::connect()?;
         if !self.base.is_empty() {
             for base in &self.base {
-                crawl(&db, &pd, Path::new(base)).map_err(|e| {
-                    anyhow!("Failed to crawl {}: {}", base, e)
-                })?;
+                crawl(&db, &pd, Path::new(base))
+                    .map_err(|e| anyhow!("Failed to crawl {}: {}", base, e))?;
             }
         } else {
-            crawl(&db, &pd, Path::new("")).map_err(|e| {
-                anyhow!("Failed to crawl: {}", e)
-            })?;
+            crawl(&db, &pd, Path::new(""))
+                .map_err(|e| anyhow!("Failed to crawl: {}", e))?;
         }
         Ok(())
     }

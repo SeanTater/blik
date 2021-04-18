@@ -28,8 +28,8 @@ impl ExifData {
     pub fn read_from(path: &Path) -> Result<Self> {
         let mut result = Self::default();
         let file = File::open(path)?;
-        let reader = Reader::new()
-            .read_from_container(&mut BufReader::new(&file))?;
+        let reader =
+            Reader::new().read_from_container(&mut BufReader::new(&file))?;
         for f in reader.fields() {
             if f.ifd_num == In::PRIMARY {
                 if let Some(d) = is_datetime(f, Tag::DateTimeOriginal) {
@@ -256,9 +256,6 @@ fn single_ascii(value: &Value) -> Result<&str> {
             }
             Ok(from_utf8(&v[0])?)
         }
-        v => Err(anyhow!(
-            "Got {:?}, expected single ascii value",
-            v,
-        )),
+        v => Err(anyhow!("Got {:?}, expected single ascii value", v,)),
     }
 }

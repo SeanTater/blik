@@ -1,12 +1,12 @@
-use anyhow::Result;
 use crate::schema::people::dsl::people;
 use crate::schema::photos::dsl::photos;
 use crate::schema::places::dsl::places;
 use crate::schema::tags::dsl::tags;
+use anyhow::Result;
 use diesel::expression::dsl::{count_star, sql};
-use diesel::sqlite::SqliteConnection;
 use diesel::prelude::*;
 use diesel::sql_types::{BigInt, Double, Nullable};
+use diesel::sqlite::SqliteConnection;
 
 pub fn show_stats(db: &SqliteConnection) -> Result<()> {
     println!(

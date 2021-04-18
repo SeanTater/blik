@@ -16,11 +16,11 @@ mod server;
 
 use crate::adm::stats::show_stats;
 use crate::adm::{findphotos, makepublic, storestatics};
+use anyhow::Result;
 use dotenv::dotenv;
 use std::path::PathBuf;
 use std::process::exit;
 use structopt::StructOpt;
-use anyhow::Result;
 
 /// Command line interface for rphotos.
 #[derive(StructOpt)]
