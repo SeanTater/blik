@@ -66,16 +66,6 @@ CREATE TABLE photo_places (
 CREATE INDEX places_osml_idx ON places (osm_level);
 CREATE UNIQUE INDEX places_name_idx ON places (place_name, osm_level);
 
-
---
--- Users
---
-CREATE TABLE users (
-  id INTEGER NOT NULL PRIMARY KEY,
-  username TEXT UNIQUE NOT NULL,
-  password TEXT UNIQUE NOT NULL
-);
-
 --
 -- Positions
 --

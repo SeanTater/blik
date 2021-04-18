@@ -15,7 +15,7 @@ mod schema;
 mod server;
 
 use crate::adm::stats::show_stats;
-use crate::adm::{findphotos, makepublic, storestatics, users};
+use crate::adm::{findphotos, makepublic, storestatics};
 use dotenv::dotenv;
 use std::path::PathBuf;
 use std::process::exit;
@@ -38,14 +38,6 @@ enum RPhotos {
     Storestatics {
         /// Directory to store the files in
         dir: String,
-    },
-    /// List existing users
-    Userlist{},
-    /// Set password for a (new or existing) user
-    Userpass {
-        /// Username to set password for
-        // TODO: Use a special type that only accepts nice user names.
-        user: String,
     },
     /// Run the rphotos web server.
     Runserver(server::Args),
@@ -77,8 +69,6 @@ async fn run(args: &RPhotos) -> Result<()> {
         RPhotos::Findphotos(cmd) => cmd.run(),
         RPhotos::Makepublic(cmd) => cmd.run(),
         RPhotos::Stats => show_stats(&dbopt::connect()?),
-        RPhotos::Userlist{} => users::list(&dbopt::connect()?),
-        RPhotos::Userpass{user} => users::passwd(&dbopt::connect()?, user),
         RPhotos::Storestatics { dir } => storestatics::to_dir(dir),
         RPhotos::Runserver(ra) => server::run(ra).await,
     }

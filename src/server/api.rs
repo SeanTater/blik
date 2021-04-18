@@ -59,15 +59,15 @@ fn w<T: Serialize>(result: ApiResult<T>) -> Response {
 }
 
 fn login(context: Context, form: LoginForm) -> ApiResult<LoginOk> {
-    let db = context.db();
-    let user = form
-        .validate(&db)
-        .ok_or_else(|| ApiError::bad_request("login failed"))?;
-    Ok(LoginOk {
-        token: context
-            .make_token(&user)
-            .ok_or_else(|| ApiError::bad_request("failed to make token"))?,
-    })
+    if context.global.use_login_token(form.code.parse().unwrap_or(0)) {
+        Ok(LoginOk {
+            token: context
+                .make_token(&form.code)
+                .ok_or_else(|| ApiError::bad_request("failed to make token"))?,
+        })
+    } else {
+        Err(ApiError::bad_request("login failed"))
+    }
 }
 
 #[derive(Debug, Serialize)]

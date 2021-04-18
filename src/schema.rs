@@ -78,14 +78,6 @@ table! {
     }
 }
 
-table! {
-    users (id) {
-        id -> Integer,
-        username -> Text,
-        password -> Text,
-    }
-}
-
 joinable!(photo_people -> people (person_id));
 joinable!(photo_people -> photos (photo_id));
 joinable!(photo_places -> photos (photo_id));
@@ -104,5 +96,4 @@ allow_tables_to_appear_in_same_query!(
     places,
     positions,
     tags,
-    users,
 );

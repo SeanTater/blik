@@ -295,3 +295,5 @@ impl<X, Y> AnyhowRejectionExt<X> for Result<X, Y> where Y: Into<anyhow::Error> {
         self.map_err(AnyhowRejection::from)
     }
 }
+
+type WarpResult = Result<Response, Rejection>;

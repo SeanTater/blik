@@ -5,6 +5,5 @@ DROP TABLE photo_people;
 DROP TABLE people;
 DROP TABLE photo_places;
 DROP TABLE places;
-DROP TABLE users;
 DROP TABLE positions;
 DROP TABLE attributions;

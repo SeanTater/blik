@@ -1,5 +1,5 @@
 //! Admin-only views, generally called by javascript.
-use super::{not_found, permission_denied, redirect_to_img, Context, AnyhowRejection, AnyhowRejectionExt};
+use super::{not_found, permission_denied, redirect_to_img, Context, AnyhowRejectionExt, WarpResult};
 use crate::models::{Coord, Photo};
 use anyhow::Context as AContext;
 use diesel::{self, prelude::*};
@@ -9,7 +9,7 @@ use slug::slugify;
 use warp::filters::BoxedFilter;
 use warp::http::response::Builder;
 use warp::reply::Response;
-use warp::{Filter, Rejection, Reply};
+use warp::{Filter, Reply};
 
 pub fn routes(s: BoxedFilter<(Context,)>) -> BoxedFilter<(impl Reply,)> {
     use warp::{body::form, path, post};
@@ -47,7 +47,7 @@ fn rotate(context: Context, form: RotateForm) -> Response {
         info!("Rotation was {}, setting to {}", image.rotation, newvalue);
         image.rotation = newvalue;
         match image.save_changes::<Photo>(c) {
-            Ok(image) => {
+            Ok(_image) => {
                 return Builder::new().body("ok".into()).unwrap();
             }
             Err(error) => {
@@ -63,8 +63,6 @@ struct RotateForm {
     image: i32,
     angle: i16,
 }
-
-type WarpResult = Result<Response, Rejection>;
 
 async fn set_tag(context: Context, form: TagForm) -> WarpResult {
     if !context.is_authorized() {

@@ -1,11 +1,11 @@
 use super::{BuilderExt, Context, RenderRucte};
 use crate::templates;
-use diesel::prelude::*;
 use log::info;
 use serde::Deserialize;
 use warp::http::header;
 use warp::http::response::Builder;
 use warp::reply::Response;
+
 
 pub fn get_login(context: Context, param: NextQ) -> Response {
     info!("Got request for login form.  Param: {:?}", param);
@@ -22,52 +22,31 @@ pub struct NextQ {
 
 pub fn post_login(context: Context, form: LoginForm) -> Response {
     let next = sanitize_next(form.next.as_ref().map(AsRef::as_ref));
-    if let Some(user) = form.validate(&*context.db()) {
-        let token = context.make_token(&user).unwrap();
+    let code = form.code.parse().unwrap_or(0);
+    if context.global.use_login_token(code) {
+        // Login successful
+        let token = context.make_token(&form.code).unwrap();
         return Builder::new()
             .header(
                 header::SET_COOKIE,
                 format!("EXAUTH={}; SameSite=Strict; HttpOnly", token),
             )
             .redirect(next.unwrap_or("/"));
+    } else {
+        // Login failed
+        let message = Some("Login failed, please try again");
+        Builder::new()
+            .html(|o| templates::login(o, &context, next, message))
+            .unwrap()
     }
-    let message = Some("Login failed, please try again");
-    Builder::new()
-        .html(|o| templates::login(o, &context, next, message))
-        .unwrap()
 }
 
 /// The data submitted by the login form.
 /// This does not derive Debug or Serialize, as the password is plain text.
 #[derive(Deserialize)]
 pub struct LoginForm {
-    user: String,
-    password: String,
+    pub code: String,
     next: Option<String>,
-}
-
-impl LoginForm {
-    /// Retur user if and only if password is correct for user.
-    pub fn validate(&self, db: &SqliteConnection) -> Option<String> {
-        use crate::schema::users::dsl::*;
-        if let Ok(hash) = users
-            .filter(username.eq(&self.user))
-            .select(password)
-            .first::<String>(db)
-        {
-            if djangohashers::check_password_tolerant(&self.password, &hash) {
-                info!("User {} logged in", self.user);
-                return Some(self.user.clone());
-            }
-            info!(
-                "Login failed: Password verification failed for {:?}",
-                self.user,
-            );
-        } else {
-            info!("Login failed: No hash found for {:?}", self.user);
-        }
-        None
-    }
 }
 
 fn sanitize_next(next: Option<&str>) -> Option<&str> {
