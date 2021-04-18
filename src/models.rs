@@ -8,7 +8,7 @@ use crate::schema::photos::dsl as p;
 use crate::schema::places::dsl as l;
 use crate::schema::positions::dsl as pos;
 use crate::schema::tags::dsl as t;
-use chrono::naive::NaiveDateTime;
+use chrono::{Datelike, naive::NaiveDateTime};
 use diesel::sqlite::{Sqlite, SqliteConnection};
 use diesel::prelude::*;
 use diesel::result::Error;
@@ -22,6 +22,9 @@ pub struct Photo {
     pub id: i32,
     pub path: String,
     pub date: Option<NaiveDateTime>,
+    pub year: i32,
+    pub month: i32,
+    pub day: i32,
     pub grade: Option<i16>,
     pub rotation: i16,
     pub is_public: bool,
@@ -119,6 +122,9 @@ impl Photo {
                     p::rotation.eq(exifrotation),
                     p::width.eq(newwidth),
                     p::height.eq(newheight),
+                    p::year.eq(exifdate.map(|d| d.year()).unwrap_or(2000) as i32),
+                    p::month.eq(exifdate.map(|d| d.month()).unwrap_or(1) as i32),
+                    p::day.eq(exifdate.map(|d| d.day()).unwrap_or(1) as i32)
                 ))
                 .execute(db)?;
             let pic = p::photos
@@ -210,6 +216,9 @@ impl Photo {
                 y, mo, da, h, m, s,
             ),
             date: Some(NaiveDate::from_ymd(y, mo, da).and_hms(h, m, s)),
+            year: y,
+            month: mo as i32,
+            day: da as i32,
             grade: None,
             rotation: 0,
             is_public: false,

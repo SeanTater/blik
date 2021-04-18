@@ -204,8 +204,8 @@ fn photo_details(id: i32, context: Context) -> Response {
                             .map(|d| {
                                 vec![
                                     Link::year(d.year()),
-                                    Link::month(d.year(), d.month()),
-                                    Link::day(d.year(), d.month(), d.day()),
+                                    Link::month(d.year(), d.month() as i32),
+                                    Link::day(d.year(), d.month() as i32, d.day() as i32),
                                     Link::prev(tphoto.id),
                                     Link::next(tphoto.id),
                                 ]
@@ -234,7 +234,7 @@ impl Link {
             year,
         ))
     }
-    fn month(year: i32, month: u32) -> Self {
+    fn month(year: i32, month: i32) -> Self {
         Html(format!(
             "<a href='/{0}/{1}/' title='Images from {2} {0}' \
              accessKey='m'>{1}</a>",
@@ -243,7 +243,7 @@ impl Link {
             monthname(month),
         ))
     }
-    fn day(year: i32, month: u32, day: u32) -> Self {
+    fn day(year: i32, month: i32, day: i32) -> Self {
         Html(format!(
             "<a href='/{0}/{1}/{2}' title='Images from {2} {3} {0}' \
              accessKey='d'>{2}</a>",

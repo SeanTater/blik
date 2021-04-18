@@ -3,44 +3,37 @@ use super::{not_found, redirect_to_img, Context, ImgRange, Link, PhotoLink};
 use crate::models::{Photo, SizeTag};
 use crate::templates::{self, RenderRucte};
 use chrono::naive::{NaiveDate, NaiveDateTime};
-use chrono::{Datelike, Duration, Local};
+use chrono::{Datelike, Local};
 use diesel::dsl::sql;
 use diesel::prelude::*;
-use diesel::sql_types::{BigInt, Integer, Nullable};
+use diesel::sql_types::{BigInt, Integer};
 use log::warn;
 use serde::Deserialize;
 use warp::http::response::Builder;
 use warp::reply::Response;
 
 pub fn all_years(context: Context) -> Response {
-    use crate::schema::photos::dsl::{date, grade};
+    use crate::schema::photos::dsl::{year, date, grade};
     let db = context.db();
     let groups = Photo::query(context.is_authorized())
-        .select(sql::<(Nullable<Integer>, BigInt)>(
-            "cast(strftime('%Y', date) as int) y, count(*)",
+        .select(sql::<(Integer, BigInt)>(
+            "year, count(*)",
         ))
-        .group_by(sql::<Nullable<Integer>>("y"))
-        .order(sql::<Nullable<Integer>>("y").desc())
-        .load::<(Option<i32>, i64)>(&db)
+        .group_by(sql::<Integer>("year"))
+        .order(sql::<Integer>("year").desc())
+        .load::<(i32, i64)>(&db)
         .unwrap()
         .iter()
-        .map(|&(year, count)| {
-            let q = Photo::query(context.is_authorized())
+        .map(|&(group_year, count)| {
+            let photo : Photo = Photo::query(context.is_authorized())
+                .filter(year.eq(group_year))    
                 .order((grade.desc(), date.asc()))
-                .limit(1);
-            let photo = if let Some(year) = year {
-                q.filter(date.ge(start_of_year(year)))
-                    .filter(date.lt(start_of_year(year + 1)))
-            } else {
-                q.filter(date.is_null())
-            };
-            let photo = photo.first::<Photo>(&db).unwrap();
+                .limit(1)
+                .first(&db)
+                .unwrap();
             PhotoLink {
-                title: Some(
-                    year.map(|y| format!("{}", y))
-                        .unwrap_or_else(|| "-".to_string()),
-                ),
-                href: format!("/{}/", year.unwrap_or(0)),
+                title: Some(format!("{}", group_year)),
+                href: format!("/{}/", group_year),
                 lable: Some(format!("{} images", count)),
                 id: photo.id,
                 size: photo.get_size(SizeTag::Small),
@@ -55,39 +48,33 @@ pub fn all_years(context: Context) -> Response {
         .unwrap()
 }
 
-fn start_of_year(year: i32) -> NaiveDateTime {
-    NaiveDate::from_ymd(year, 1, 1).and_hms(0, 0, 0)
-}
+pub fn months_in_year(target_year: i32, context: Context) -> Response {
+    use crate::schema::photos::dsl::{year, month, date, grade};
 
-pub fn months_in_year(year: i32, context: Context) -> Response {
-    use crate::schema::photos::dsl::{date, grade};
-
-    let title: String = format!("Photos from {}", year);
+    let title: String = format!("Photos from {}", target_year);
     let db = context.db();
     let groups = Photo::query(context.is_authorized())
-        .filter(date.ge(start_of_year(year)))
-        .filter(date.lt(start_of_year(year + 1)))
+        .filter(year.eq(target_year))
         .select(sql::<(Integer, BigInt)>(
-            "cast(strftime('%M', date) as int) m, count(*)",
+            "month, count(*)",
         ))
-        .group_by(sql::<Integer>("m"))
-        .order(sql::<Integer>("m").desc())
+        .group_by(sql::<Integer>("month"))
+        .order(sql::<Integer>("month").desc())
         .load::<(i32, i64)>(&db)
         .unwrap()
         .iter()
-        .map(|&(month, count)| {
-            let month = month as u32;
+        .map(|&(group_month, count)| {
             let photo = Photo::query(context.is_authorized())
-                .filter(date.ge(start_of_month(year, month)))
-                .filter(date.lt(start_of_month(year, month + 1)))
+                .filter(year.eq(target_year))
+                .filter(month.eq(group_month))
                 .order((grade.desc(), date.asc()))
                 .limit(1)
                 .first::<Photo>(&db)
                 .unwrap();
 
             PhotoLink {
-                title: Some(monthname(month).to_string()),
-                href: format!("/{}/{}/", year, month),
+                title: Some(monthname(group_month).to_string()),
+                href: format!("/{}/{}/", target_year, group_month),
                 lable: Some(format!("{} pictures", count)),
                 id: photo.id,
                 size: photo.get_size(SizeTag::Small),
@@ -103,8 +90,7 @@ pub fn months_in_year(year: i32, context: Context) -> Response {
         };
         let pos = Photo::query(context.is_authorized())
             .inner_join(positions)
-            .filter(date.ge(start_of_year(year)))
-            .filter(date.lt(start_of_year(year + 1)))
+            .filter(year.eq(target_year))
             .select((photo_id, latitude, longitude))
             .load(&db)
             .map_err(|e| warn!("Failed to load positions: {}", e))
@@ -122,47 +108,36 @@ pub fn months_in_year(year: i32, context: Context) -> Response {
     }
 }
 
-fn start_of_month(year: i32, month: u32) -> NaiveDateTime {
-    let date = if month > 12 {
-        NaiveDate::from_ymd(year + 1, month - 12, 1)
-    } else {
-        NaiveDate::from_ymd(year, month, 1)
-    };
-    date.and_hms(0, 0, 0)
-}
+pub fn days_in_month(target_year: i32, target_month: i32, context: Context) -> Response {
+    use crate::schema::photos::dsl::{year, month, day, date, grade};
 
-pub fn days_in_month(year: i32, month: u32, context: Context) -> Response {
-    use crate::schema::photos::dsl::{date, grade};
-
-    let lpath: Vec<Link> = vec![Link::year(year)];
-    let title: String = format!("Photos from {} {}", monthname(month), year);
+    let lpath: Vec<Link> = vec![Link::year(target_year)];
+    let title: String = format!("Photos from {} {}", monthname(target_month), target_year);
     let db = context.db();
     let groups = Photo::query(context.is_authorized())
-        .filter(date.ge(start_of_month(year, month)))
-        .filter(date.lt(start_of_month(year, month + 1)))
+        .filter(year.eq(target_year))
+        .filter(month.eq(target_month as i32))
         .select(sql::<(Integer, BigInt)>(
-            "cast(strftime('%D', date) as int) d, count(*)",
+            "day, count(*)",
         ))
-        .group_by(sql::<Integer>("d"))
-        .order(sql::<Integer>("d").desc())
+        .group_by(sql::<Integer>("day"))
+        .order(sql::<Integer>("day").desc())
         .load::<(i32, i64)>(&db)
         .unwrap()
         .iter()
-        .map(|&(day, count)| {
-            let day = day as u32;
-            let fromdate =
-                NaiveDate::from_ymd(year, month, day).and_hms(0, 0, 0);
+        .map(|&(group_day, count)| {
             let photo = Photo::query(context.is_authorized())
-                .filter(date.ge(fromdate))
-                .filter(date.lt(fromdate + Duration::days(1)))
+                .filter(year.eq(target_year))
+                .filter(month.eq(target_month as i32))
+                .filter(day.eq(group_day as i32))
                 .order((grade.desc(), date.asc()))
                 .limit(1)
                 .first::<Photo>(&db)
                 .unwrap();
 
             PhotoLink {
-                title: Some(format!("{}", day)),
-                href: format!("/{}/{}/{}", year, month, day),
+                title: Some(format!("{}", group_day)),
+                href: format!("/{}/{}/{}", target_year, target_month, group_day),
                 lable: Some(format!("{} pictures", count)),
                 id: photo.id,
                 size: photo.get_size(SizeTag::Small),
@@ -178,8 +153,8 @@ pub fn days_in_month(year: i32, month: u32, context: Context) -> Response {
         };
         let pos = Photo::query(context.is_authorized())
             .inner_join(positions)
-            .filter(date.ge(start_of_month(year, month)))
-            .filter(date.lt(start_of_month(year, month + 1)))
+            .filter(year.eq(target_year))
+            .filter(month.eq(target_month as i32))
             .select((photo_id, latitude, longitude))
             .load(&db)
             .map_err(|e| warn!("Failed to load positions: {}", e))
@@ -223,18 +198,18 @@ pub fn all_null_date(context: Context) -> Response {
 }
 
 pub fn all_for_day(
-    year: i32,
-    month: u32,
-    day: u32,
+    target_year: i32,
+    target_month: i32,
+    target_day: i32,
     range: ImgRange,
     context: Context,
 ) -> Response {
-    let thedate = NaiveDate::from_ymd(year, month, day).and_hms(0, 0, 0);
-    use crate::schema::photos::dsl::date;
+    use crate::schema::photos::dsl::{year, month, day};
 
     let photos = Photo::query(context.is_authorized())
-        .filter(date.ge(thedate))
-        .filter(date.lt(thedate + Duration::days(1)));
+        .filter(year.eq(target_year))
+        .filter(month.eq(target_month))
+        .filter(day.eq(target_day));
     let (links, coords) = links_by_time(&context, photos, range, false);
 
     if links.is_empty() {
@@ -247,11 +222,11 @@ pub fn all_for_day(
                     &context,
                     &format!(
                         "Photos from {} {} {}",
-                        day,
-                        monthname(month),
-                        year
+                        target_day,
+                        monthname(target_month),
+                        target_year
                     ),
-                    &[Link::year(year), Link::month(year, month)],
+                    &[Link::year(target_year), Link::month(target_year, target_month)],
                     &links,
                     &coords,
                 )
@@ -261,22 +236,20 @@ pub fn all_for_day(
 }
 
 pub fn on_this_day(context: Context) -> Response {
-    use crate::schema::photos::dsl::{date, grade};
+    use crate::schema::photos::dsl::{year, month, day, date, grade};
     use crate::schema::positions::dsl::{
         latitude, longitude, photo_id, positions,
     };
 
-    let (month, day) = {
+    let (target_month, target_day) = {
         let today = Local::now();
-        (today.month(), today.day())
+        (today.month() as i32, today.day() as i32)
     };
     let db = context.db();
     let pos = Photo::query(context.is_authorized())
         .inner_join(positions)
-        .filter(
-            sql("extract(month from date)=").bind::<Integer, _>(month as i32),
-        )
-        .filter(sql("extract(day from date)=").bind::<Integer, _>(day as i32))
+        .filter(month.eq(target_month))
+        .filter(day.eq(target_day))
         .select((photo_id, latitude, longitude))
         .load(&db)
         .map_err(|e| warn!("Failed to load positions: {}", e))
@@ -290,40 +263,32 @@ pub fn on_this_day(context: Context) -> Response {
             templates::index(
                 o,
                 &context,
-                &format!("Photos from {} {}", day, monthname(month)),
+                &format!("Photos from {} {}", target_day, monthname(target_month)),
                 &[],
                 &Photo::query(context.is_authorized())
                     .select(sql::<(Integer, BigInt)>(
-                        "cast(extract(year from date) as int) y, count(*)",
+                        "year, count(*)",
                     ))
-                    .group_by(sql::<Integer>("y"))
-                    .filter(
-                        sql("extract(month from date)=")
-                            .bind::<Integer, _>(month as i32),
-                    )
-                    .filter(
-                        sql("extract(day from date)=")
-                            .bind::<Integer, _>(day as i32),
-                    )
-                    .order(sql::<Integer>("y").desc())
+                    .group_by(sql::<Integer>("year"))
+                    .filter(month.eq(target_month as i32))
+                    .filter(day.eq(target_day as i32))
+                    .order(sql::<Integer>("year").desc())
                     .load::<(i32, i64)>(&db)
                     .unwrap()
                     .iter()
-                    .map(|&(year, count)| {
-                        let fromdate =
-                            NaiveDate::from_ymd(year, month as u32, day)
-                                .and_hms(0, 0, 0);
+                    .map(|&(group_year, count)| {
                         let photo = Photo::query(context.is_authorized())
-                            .filter(date.ge(fromdate))
-                            .filter(date.lt(fromdate + Duration::days(1)))
+                            .filter(year.eq(group_year as i32))
+                            .filter(month.eq(target_month as i32))
+                            .filter(day.eq(target_day as i32))
                             .order((grade.desc(), date.asc()))
                             .limit(1)
                             .first::<Photo>(&db)
                             .unwrap();
 
                         PhotoLink {
-                            title: Some(format!("{}", year)),
-                            href: format!("/{}/{}/{}", year, month, day),
+                            title: Some(format!("{}", group_year)),
+                            href: format!("/{}/{}/{}", group_year, target_month, target_day),
                             lable: Some(format!("{} pictures", count)),
                             id: photo.id,
                             size: photo.get_size(SizeTag::Small),
@@ -382,7 +347,7 @@ pub fn date_of_img(db: &SqliteConnection, photo_id: i32) -> Option<NaiveDateTime
     photos.find(photo_id).select(date).first(db).unwrap_or(None)
 }
 
-pub fn monthname(n: u32) -> &'static str {
+pub fn monthname(n: i32) -> &'static str {
     match n {
         1 => "january",
         2 => "february",
