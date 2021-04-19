@@ -36,7 +36,7 @@ impl Collection {
         file_path: &Path,
     ) -> Result<()> {
         let ref db = self.pool.get()?;
-        let exif = load_meta(file_path).ok_or(anyhow!("Could not read Exif data"))?;
+        let exif = load_exif(file_path).ok_or(anyhow!("Could not read Exif data"))?;
         let width = exif.width.ok_or(anyhow!("Missing width"))?;
         let height = exif.height.ok_or(anyhow!("Missing height"))?;
         let photo = match Photo::create_or_set_basics(
@@ -116,7 +116,7 @@ impl Collection {
     }
 }
 
-fn load_meta(path: &Path) -> Option<ExifData> {
+fn load_exif(path: &Path) -> Option<ExifData> {
     if let Ok(mut exif) = ExifData::read_from(&path) {
         if exif.width.is_none() || exif.height.is_none() {
             if let Ok((width, height)) = actual_image_size(&path) {
