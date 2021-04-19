@@ -8,13 +8,13 @@ use std::path::{Path, PathBuf};
 use std::{fs, io};
 use tokio::task::{spawn_blocking, JoinError};
 
-pub struct PhotosDir {
+pub struct Collection {
     basedir: PathBuf,
 }
 
-impl PhotosDir {
+impl Collection {
     pub fn new(basedir: &Path) -> Self {
-        PhotosDir {
+        Collection {
             basedir: basedir.into(),
         }
     }

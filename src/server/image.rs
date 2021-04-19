@@ -2,7 +2,7 @@ use super::AnyhowRejectionExt;
 use super::BuilderExt;
 use super::{error_response, not_found, Context};
 use crate::models::{Photo, SizeTag};
-use crate::photosdir::{get_scaled_jpeg, ImageLoadFailed};
+use crate::collection::{get_scaled_jpeg, ImageLoadFailed};
 use diesel::prelude::*;
 use std::str::FromStr;
 use warp::http::response::Builder;

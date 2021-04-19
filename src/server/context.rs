@@ -1,6 +1,6 @@
 use super::Args;
 use crate::dbopt::{PooledSqlite, SqlitePool};
-use crate::photosdir::PhotosDir;
+use crate::collection::Collection;
 use chrono::{DateTime, Utc};
 use log::{debug, warn};
 use medallion::{Header, Payload, Token};
@@ -41,7 +41,7 @@ pub fn create_session_filter(args: &Args) -> ContextFilter {
 // secret and some connection pools.
 pub struct GlobalContext {
     db_pool: SqlitePool,
-    photosdir: PhotosDir,
+    photosdir: Collection,
     jwt_secret: String,
     // Note for simplicity only one new person can login at a time.
     open_token: Mutex<Option<(u64, DateTime<Utc>)>>,
@@ -51,7 +51,7 @@ impl GlobalContext {
     fn new(args: &Args) -> Self {
         let gc = GlobalContext {
             db_pool: crate::dbopt::create_pool().expect("Sqlite pool"),
-            photosdir: PhotosDir::new(&args.photos.photos_dir),
+            photosdir: Collection::new(&args.photos.photos_dir),
             jwt_secret: args.jwt_key.clone(),
             open_token: Mutex::new(None),
         };
@@ -154,7 +154,7 @@ impl Context {
     pub fn path_without_query(&self) -> &str {
         self.path.as_str()
     }
-    pub fn photos(&self) -> &PhotosDir {
+    pub fn photos(&self) -> &Collection {
         &self.global.photosdir
     }
 

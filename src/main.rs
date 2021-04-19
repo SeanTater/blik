@@ -9,7 +9,7 @@ mod adm;
 mod dbopt;
 mod models;
 mod myexif;
-mod photosdir;
+mod collection;
 mod pidfiles;
 mod schema;
 mod server;

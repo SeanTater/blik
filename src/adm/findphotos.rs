@@ -1,6 +1,6 @@
 use crate::models::{Modification, Photo};
 use crate::myexif::ExifData;
-use crate::photosdir::PhotosDir;
+use crate::collection::Collection;
 use crate::DirOpt;
 use anyhow::{Context, Result};
 use diesel::insert_into;
@@ -22,7 +22,7 @@ pub struct Findphotos {
 
 impl Findphotos {
     pub fn run(&self) -> Result<()> {
-        let pd = PhotosDir::new(&self.photos.photos_dir);
+        let pd = Collection::new(&self.photos.photos_dir);
         let db = crate::dbopt::connect()?;
         if !self.base.is_empty() {
             for base in &self.base {
@@ -39,7 +39,7 @@ impl Findphotos {
 
 fn crawl(
     db: &SqliteConnection,
-    photos: &PhotosDir,
+    photos: &Collection,
     only_in: &Path,
 ) -> Result<()> {
     photos.find_files(
