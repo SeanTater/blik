@@ -107,7 +107,7 @@ impl Collection {
                 } else {
                 let subpath = path
                     .strip_prefix(&self.basedir)
-                    .map_err(|e| anyhow!("Directory not in collection: {}", self.basedir.display()))?;
+                    .map_err(|_| anyhow!("Directory not in collection: {}", self.basedir.display()))?;
                 cb(&subpath);
                 }
             }
