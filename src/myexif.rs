@@ -3,9 +3,6 @@ use anyhow::Result;
 use chrono::{Date, Local, NaiveDate, NaiveDateTime, Utc};
 use exif::{Field, In, Reader, Tag, Value};
 use log::{debug, error, warn};
-use std::fs::File;
-use std::io::BufReader;
-use std::path::Path;
 use std::str::from_utf8;
 
 #[derive(Debug, Default)]
@@ -25,11 +22,13 @@ pub struct ExifData {
 }
 
 impl ExifData {
-    pub fn read_from(path: &Path) -> Result<Self> {
+    /// Read Exif data from a basic image, as a reader
+    ///
+    /// This could be a file or an IO cursor depending on your use case
+    pub fn read_from<R>(mut raw_reader: R) -> Result<Self>
+        where R: std::io::BufRead + std::io::Seek {
         let mut result = Self::default();
-        let file = File::open(path)?;
-        let reader =
-            Reader::new().read_from_container(&mut BufReader::new(&file))?;
+        let reader = Reader::new().read_from_container(&mut raw_reader)?;
         for f in reader.fields() {
             if f.ifd_num == In::PRIMARY {
                 if let Some(d) = is_datetime(f, Tag::DateTimeOriginal) {

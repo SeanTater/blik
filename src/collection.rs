@@ -4,7 +4,7 @@ use diesel::{QueryDsl, RunQueryDsl, insert_into, ExpressionMethods};
 use image::imageops::FilterType;
 use image::{self, GenericImageView, ImageError, ImageFormat};
 use log::{debug, info, warn};
-use std::{ffi::OsStr};
+use std::{ffi::OsStr, fs::File, io::BufReader};
 use std::path::{Path, PathBuf};
 use std::{fs, io};
 use tokio::task::{spawn_blocking, JoinError};
@@ -36,7 +36,7 @@ impl Collection {
         file_path: &Path,
     ) -> Result<()> {
         let ref db = self.pool.get()?;
-        let exif = load_exif(file_path).ok_or(anyhow!("Could not read Exif data"))?;
+        let exif = load_exif(file_path)?;
         let width = exif.width.ok_or(anyhow!("Missing width"))?;
         let height = exif.height.ok_or(anyhow!("Missing height"))?;
         let photo = match Photo::create_or_set_basics(
@@ -116,22 +116,24 @@ impl Collection {
     }
 }
 
-fn load_exif(path: &Path) -> Option<ExifData> {
-    if let Ok(mut exif) = ExifData::read_from(&path) {
+fn load_exif(path: &Path) -> Result<ExifData> {
+    let file = File::open(path)?;
+    let reader = &mut BufReader::new(&file);
+    if let Ok(mut exif) = ExifData::read_from(reader) {
         if exif.width.is_none() || exif.height.is_none() {
             if let Ok((width, height)) = actual_image_size(&path) {
                 exif.width = Some(width);
                 exif.height = Some(height);
             }
         }
-        Some(exif)
+        Ok(exif)
     } else if let Ok((width, height)) = actual_image_size(&path) {
         let mut meta = ExifData::default();
         meta.width = Some(width);
         meta.height = Some(height);
-        Some(meta)
+        Ok(meta)
     } else {
-        None
+        Err(anyhow!("Couldn't read Exif data"))
     }
 }
 
@@ -184,8 +186,6 @@ pub async fn get_scaled_jpeg(
         info!("Should open {:?}", path);
 
         let img = if is_jpeg(&path) {
-            use std::fs::File;
-            use std::io::BufReader;
             let file = BufReader::new(File::open(path)?);
             let mut decoder = image::jpeg::JpegDecoder::new(file)?;
             decoder.scale(size as u16, size as u16)?;
