@@ -40,9 +40,9 @@ fn crawl(
 ) -> Result<()> {
     photos.find_files(
         only_in,
-        &|path| match photos.add_photo(path) {
-            Ok(()) => info!("Saved photo {}", path.display()),
-            Err(e) => warn!("Failed to save photo {}: {:?}", path.display(), e),
+        &|path| match photos.index_photo(path) {
+            Ok(()) => println!("Saved photo {}", path.display()),
+            Err(e) => println!("Failed to save photo {}: {:?}", path.display(), e),
         },
     )?;
     Ok(())

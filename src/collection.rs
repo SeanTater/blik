@@ -31,12 +31,12 @@ impl Collection {
         self.basedir.join(Path::new(path)).is_file()
     }
 
-    pub fn add_photo(
+    pub fn index_photo(
         &self,
         file_path: &Path,
     ) -> Result<()> {
         let ref db = self.pool.get()?;
-        let exif = load_exif(file_path)?;
+        let exif = load_exif(&self.basedir.join(file_path)).context("Failed reading exif data")?;
         let width = exif.width.ok_or(anyhow!("Missing width"))?;
         let height = exif.height.ok_or(anyhow!("Missing height"))?;
         let photo = match Photo::create_or_set_basics(
@@ -105,10 +105,10 @@ impl Collection {
                 if fs::metadata(&path)?.is_dir() {
                     self.find_files(&path, cb)?;
                 } else {
-                let subpath = path
-                    .strip_prefix(&self.basedir)
-                    .map_err(|_| anyhow!("Directory not in collection: {}", self.basedir.display()))?;
-                cb(&subpath);
+                    let subpath = path
+                        .strip_prefix(&self.basedir)
+                        .map_err(|_| anyhow!("Directory not in collection: {}", self.basedir.display()))?;
+                    cb(&subpath);
                 }
             }
         }

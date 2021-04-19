@@ -29,6 +29,7 @@ serde_json = "1.0"
 slug = "0.1"
 structopt = { version = "0.3.0", features = ["wrap_help"] }
 tokio = { version = "1.0.2", features = ["macros", "rt-multi-thread"] }
+futures = "0.3"
 anyhow = "1.0.38"
 
 [dependencies.djangohashers]
@@ -42,5 +43,4 @@ features = ["r2d2", "chrono", "sqlite"]
 version = "1.4.0"
 
 [dependencies.warp]
-default-features = false
 version = "0.3.0"

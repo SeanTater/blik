@@ -1,40 +1,69 @@
 //! Admin-only views, generally called by javascript.
 use super::{
-    not_found, permission_denied, redirect_to_img, AnyhowRejectionExt,
+    not_found, permission_denied, redirect_to_img, AnyhowRejection,
     Context, WarpResult,
 };
+use futures::stream::TryStreamExt;
 use crate::models::{Coord, Photo};
 use anyhow::Context as AContext;
 use diesel::{self, prelude::*};
 use log::{info, warn};
 use serde::Deserialize;
 use slug::slugify;
-use warp::filters::BoxedFilter;
+use warp::{Buf, filters::BoxedFilter, hyper::body::Bytes, multipart::{FormData, Part}};
 use warp::http::response::Builder;
 use warp::reply::Response;
 use warp::{Filter, Reply};
+use super::AnyhowRejectionExt;
 
 pub fn routes(s: BoxedFilter<(Context,)>) -> BoxedFilter<(impl Reply,)> {
-    use warp::{body::form, path, post};
+    use warp::{body, path, post};
     let route = path("grade")
         .and(s.clone())
-        .and(form())
+        .and(body::form())
         .and_then(set_grade)
         .or(path("locate")
             .and(s.clone())
-            .and(form())
+            .and(body::form())
             .and_then(set_location))
         .unify()
         .or(path("person")
             .and(s.clone())
-            .and(form())
+            .and(body::form())
             .and_then(set_person))
         .unify()
-        .or(path("rotate").and(s.clone()).and(form()).map(rotate))
+        .or(path("rotate").and(s.clone()).and(body::form()).map(rotate))
         .unify()
-        .or(path("tag").and(s).and(form()).and_then(set_tag))
+        .or(path("tag").and(s.clone()).and(body::form()).and_then(set_tag))
+        .unify()
+        .or(path("upload").and(s).and(warp::filters::multipart::form().max_length(1 << 30)).and_then(upload_image))
         .unify();
     post().and(route).boxed()
+}
+
+async fn upload_image(context: Context, form: FormData) -> WarpResult {
+    let parts: Vec<Part> = form.try_collect().await
+        .map_err(|e| {
+            eprintln!("form error: {}", e);
+            warp::reject::reject()
+        })?;
+    for mut part in parts {
+        match part.data().await {
+            None => {
+                eprintln!("Missing data");
+                return Err(warp::reject::reject())
+            }
+            Some(Err(x)) => {
+                eprintln!("Failed reading data at {}", x);
+                return Err(warp::reject::reject())
+            },
+            Some(Ok(buf)) => {
+                println!("Got a new part {}, with type {:?}, and {} bytes left", part.name(), part.content_type(), buf.remaining());
+            }
+        }
+    }
+    Ok(Builder::new().body("ok".into()).unwrap())
+    //Err(warp::reject::custom(AnyhowRejection(anyhow!("Failed to upload image, {} bytes long", image_form.image.len()))))
 }
 
 fn rotate(context: Context, form: RotateForm) -> Response {
