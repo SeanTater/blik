@@ -1,7 +1,7 @@
 use crate::collection::Collection;
 use crate::DirOpt;
 use anyhow::Result;
-use log::{debug, warn};
+use log::{debug, info, warn};
 use std::path::Path;
 use structopt::StructOpt;
 
@@ -40,9 +40,9 @@ fn crawl(
 ) -> Result<()> {
     photos.find_files(
         only_in,
-        &|path, exif| match photos.add_photo(path, exif) {
-            Ok(()) => debug!("Saved photo {}", path),
-            Err(e) => warn!("Failed to save photo {}: {:?}", path, e),
+        &|path| match photos.add_photo(path) {
+            Ok(()) => info!("Saved photo {}", path.display()),
+            Err(e) => warn!("Failed to save photo {}: {:?}", path.display(), e),
         },
     )?;
     Ok(())

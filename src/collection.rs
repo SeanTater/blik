@@ -33,15 +33,15 @@ impl Collection {
 
     pub fn add_photo(
         &self,
-        file_path: &str,
-        exif: &ExifData,
+        file_path: &Path,
     ) -> Result<()> {
         let ref db = self.pool.get()?;
+        let exif = load_meta(file_path).ok_or(anyhow!("Could not read Exif data"))?;
         let width = exif.width.ok_or(anyhow!("Missing width"))?;
         let height = exif.height.ok_or(anyhow!("Missing height"))?;
         let photo = match Photo::create_or_set_basics(
             db,
-            file_path,
+            file_path.to_str().ok_or(anyhow!("Invalid characters in filename"))?,
             width as i32,
             height as i32,
             exif.date(),
@@ -61,7 +61,7 @@ impl Collection {
             }
         };
         if let Some((lat, long)) = exif.position() {
-            debug!("Position for {} is {} {}", file_path, lat, long);
+            debug!("Position for {} is {} {}", file_path.display(), lat, long);
             use crate::schema::positions::dsl::*;
             if let Ok((clat, clong)) = positions
                 .filter(photo_id.eq(photo.id))
@@ -78,7 +78,7 @@ impl Collection {
                     );
                 }
             } else {
-                info!("Position for {} is {} {}", file_path, lat, long);
+                info!("Position for {} is {} {}", file_path.display(), lat, long);
                 insert_into(positions)
                     .values((
                         photo_id.eq(photo.id),
@@ -95,8 +95,8 @@ impl Collection {
     pub fn find_files(
         &self,
         dir: &Path,
-        cb: &dyn Fn(&str, &ExifData),
-    ) -> io::Result<()> {
+        cb: &dyn Fn(&Path),
+    ) -> anyhow::Result<()> {
         let absdir = self.basedir.join(dir);
         if fs::metadata(&absdir)?.is_dir() {
             debug!("Should look in {:?}", absdir);
@@ -104,26 +104,15 @@ impl Collection {
                 let path = entry?.path();
                 if fs::metadata(&path)?.is_dir() {
                     self.find_files(&path, cb)?;
-                } else if let Some(exif) = load_meta(&path) {
-                    cb(self.subpath(&path)?, &exif);
                 } else {
-                    debug!("{:?} is no pic.", path)
+                let subpath = path
+                    .strip_prefix(&self.basedir)
+                    .map_err(|e| anyhow!("Directory not in collection: {}", self.basedir.display()))?;
+                cb(&subpath);
                 }
             }
         }
         Ok(())
-    }
-
-    fn subpath<'a>(&self, fullpath: &'a Path) -> Result<&'a str, io::Error> {
-        let path = fullpath
-            .strip_prefix(&self.basedir)
-            .map_err(|e| io::Error::new(io::ErrorKind::InvalidInput, e))?;
-        path.to_str().ok_or_else(|| {
-            io::Error::new(
-                io::ErrorKind::InvalidInput,
-                format!("Non-utf8 path {:?}", path),
-            )
-        })
     }
 }
 
