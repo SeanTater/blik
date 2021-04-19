@@ -3,9 +3,9 @@ use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
 use diesel::sqlite::SqliteConnection;
 use diesel::{Connection, ConnectionError};
 use log::debug;
-use std::time::{Duration, Instant};
+use std::{sync::Arc, time::{Duration, Instant}};
 
-pub type SqlitePool = Pool<ConnectionManager<SqliteConnection>>;
+pub type SqlitePool = Arc<Pool<ConnectionManager<SqliteConnection>>>;
 pub type PooledSqlite = PooledConnection<ConnectionManager<SqliteConnection>>;
 
 pub fn connect() -> Result<SqliteConnection, ConnectionError> {
@@ -22,5 +22,5 @@ pub fn create_pool() -> Result<SqlitePool> {
         .connection_timeout(Duration::from_millis(500))
         .build(ConnectionManager::new("rphotos.db"))?;
     debug!("Created pool in {:?}", time.elapsed());
-    Ok(pool)
+    Ok(Arc::new(pool))
 }

@@ -1,21 +1,25 @@
-use crate::models::Photo;
+use crate::{dbopt, models::Photo, models::Modification};
 use crate::myexif::ExifData;
+use diesel::{QueryDsl, RunQueryDsl, insert_into, ExpressionMethods};
 use image::imageops::FilterType;
 use image::{self, GenericImageView, ImageError, ImageFormat};
 use log::{debug, info, warn};
-use std::ffi::OsStr;
+use std::{ffi::OsStr};
 use std::path::{Path, PathBuf};
 use std::{fs, io};
 use tokio::task::{spawn_blocking, JoinError};
+use anyhow::{Context, Result};
 
 pub struct Collection {
     basedir: PathBuf,
+    pool: dbopt::SqlitePool
 }
 
 impl Collection {
-    pub fn new(basedir: &Path) -> Self {
+    pub fn new(basedir: &Path, pool: dbopt::SqlitePool) -> Self {
         Collection {
             basedir: basedir.into(),
+            pool
         }
     }
 
@@ -25,6 +29,67 @@ impl Collection {
 
     pub fn has_file<S: AsRef<OsStr> + ?Sized>(&self, path: &S) -> bool {
         self.basedir.join(Path::new(path)).is_file()
+    }
+
+    pub fn add_photo(
+        &self,
+        file_path: &str,
+        exif: &ExifData,
+    ) -> Result<()> {
+        let ref db = self.pool.get()?;
+        let width = exif.width.ok_or(anyhow!("Missing width"))?;
+        let height = exif.height.ok_or(anyhow!("Missing height"))?;
+        let photo = match Photo::create_or_set_basics(
+            db,
+            file_path,
+            width as i32,
+            height as i32,
+            exif.date(),
+            exif.rotation()?,
+        )? {
+            Modification::Created(photo) => {
+                info!("Created #{}, {}", photo.id, photo.path);
+                photo
+            }
+            Modification::Updated(photo) => {
+                info!("Modified {:?}", photo);
+                photo
+            }
+            Modification::Unchanged(photo) => {
+                debug!("No change for {:?}", photo);
+                photo
+            }
+        };
+        if let Some((lat, long)) = exif.position() {
+            debug!("Position for {} is {} {}", file_path, lat, long);
+            use crate::schema::positions::dsl::*;
+            if let Ok((clat, clong)) = positions
+                .filter(photo_id.eq(photo.id))
+                .select((latitude, longitude))
+                .first::<(i32, i32)>(db)
+            {
+                let lat = (lat * 1e6) as i32;
+                let long = (long * 1e6) as i32;
+                if clat != lat || clong != long {
+                    warn!(
+                        "Photo #{}: {}: \
+                         Exif position {}, {} differs from saved {}, {}",
+                        photo.id, photo.path, clat, clong, lat, long,
+                    );
+                }
+            } else {
+                info!("Position for {} is {} {}", file_path, lat, long);
+                insert_into(positions)
+                    .values((
+                        photo_id.eq(photo.id),
+                        latitude.eq((lat * 1e6) as i32),
+                        longitude.eq((long * 1e6) as i32),
+                    ))
+                    .execute(db)
+                    .context("Insert image position")?;
+            }
+        }
+        Ok(())
     }
 
     pub fn find_files(
