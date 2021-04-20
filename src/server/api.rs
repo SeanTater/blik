@@ -80,7 +80,7 @@ struct LoginOk {
 
 #[derive(Debug, Deserialize)]
 struct ImgQuery {
-    id: Option<u32>,
+    id: Option<String>,
     path: Option<String>,
 }
 
@@ -96,7 +96,7 @@ impl ImgQuery {
 }
 
 enum ImgIdentifier {
-    Id(u32),
+    Id(String),
     Path(String),
 }
 
@@ -105,7 +105,7 @@ impl ImgIdentifier {
         use crate::schema::photos::dsl as p;
         match &self {
             ImgIdentifier::Id(ref id) => {
-                p::photos.filter(p::id.eq(*id as i32)).first(db)
+                p::photos.filter(p::id.eq(&id)).first(db)
             }
             ImgIdentifier::Path(path) => {
                 p::photos.filter(p::path.eq(path)).first(db)

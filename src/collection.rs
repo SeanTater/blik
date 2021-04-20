@@ -64,7 +64,7 @@ impl Collection {
             debug!("Position for {} is {} {}", file_path.display(), lat, long);
             use crate::schema::positions::dsl::*;
             if let Ok((clat, clong)) = positions
-                .filter(photo_id.eq(photo.id))
+                .filter(photo_id.eq(&photo.id))
                 .select((latitude, longitude))
                 .first::<(i32, i32)>(db)
             {
@@ -81,7 +81,7 @@ impl Collection {
                 info!("Position for {} is {} {}", file_path.display(), lat, long);
                 insert_into(positions)
                     .values((
-                        photo_id.eq(photo.id),
+                        photo_id.eq(&photo.id),
                         latitude.eq((lat * 1e6) as i32),
                         longitude.eq((long * 1e6) as i32),
                     ))

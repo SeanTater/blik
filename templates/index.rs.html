@@ -2,7 +2,7 @@
 @use crate::models::Coord;
 @use crate::server::{Context, Link, PhotoLink};
 
-@(context: &Context, title: &str, lpath: &[Link], photos: &[PhotoLink], coords: &[(Coord, i32)])
+@(context: &Context, title: &str, lpath: &[Link], photos: &[PhotoLink], coords: &[(Coord, String)])
 
 @:page_base(context, title, lpath, {
   <meta property='og:title' content='@title'>

@@ -2,7 +2,7 @@
 -- Photos
 --
 CREATE TABLE photos (
-  id INTEGER NOT NULL PRIMARY KEY,
+  id TEXT NOT NULL PRIMARY KEY,
   path TEXT UNIQUE NOT NULL,
   date TIMESTAMP,
   year INT NOT NULL,
@@ -30,7 +30,7 @@ CREATE TABLE tags (
 
 CREATE TABLE photo_tags (
   id INTEGER NOT NULL PRIMARY KEY,
-  photo_id INTEGER NOT NULL NOT NULL REFERENCES photos (id),
+  photo_id TEXT NOT NULL NOT NULL REFERENCES photos (id),
   tag_id INTEGER NOT NULL NOT NULL REFERENCES tags (id)
 );
 
@@ -45,7 +45,7 @@ CREATE TABLE people (
 
 CREATE TABLE photo_people (
   id INTEGER NOT NULL PRIMARY KEY,
-  photo_id INTEGER NOT NULL NOT NULL REFERENCES photos (id),
+  photo_id TEXT NOT NULL NOT NULL REFERENCES photos (id),
   person_id INTEGER NOT NULL NOT NULL REFERENCES people (id)
 );
 
@@ -62,7 +62,7 @@ CREATE TABLE places (
 
 CREATE TABLE photo_places (
   id INTEGER NOT NULL PRIMARY KEY,
-  photo_id INTEGER NOT NULL NOT NULL REFERENCES photos (id),
+  photo_id TEXT NOT NULL NOT NULL REFERENCES photos (id),
   place_id INTEGER NOT NULL NOT NULL REFERENCES places (id)
 );
 
@@ -75,8 +75,8 @@ CREATE UNIQUE INDEX places_name_idx ON places (place_name, osm_level);
 -- Rather than using floating points or DECIMAL(8,5) or something like
 -- that, lat and long are stored as signed microdegrees integer values.
 CREATE TABLE positions (
-  id INTEGER NOT NULL PRIMARY KEY,
-  photo_id INTEGER NOT NULL UNIQUE NOT NULL REFERENCES photos (id),
+  id TEXT NOT NULL PRIMARY KEY,
+  photo_id TEXT NOT NULL UNIQUE NOT NULL REFERENCES photos (id),
   latitude INTEGER NOT NULL,
   longitude INTEGER NOT NULL
 );

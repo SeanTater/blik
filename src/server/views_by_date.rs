@@ -33,7 +33,7 @@ pub fn all_years(context: Context) -> Response {
                 title: Some(format!("{}", group_year)),
                 href: format!("/{}/", group_year),
                 lable: Some(format!("{} images", count)),
-                id: photo.id,
+                id: photo.id.clone(),
                 size: photo.get_size(SizeTag::Small),
             }
         })
@@ -72,7 +72,7 @@ pub fn months_in_year(target_year: i32, context: Context) -> Response {
                 title: Some(monthname(group_month).to_string()),
                 href: format!("/{}/{}/", target_year, group_month),
                 lable: Some(format!("{} pictures", count)),
-                id: photo.id,
+                id: photo.id.clone(),
                 size: photo.get_size(SizeTag::Small),
             }
         })
@@ -92,7 +92,7 @@ pub fn months_in_year(target_year: i32, context: Context) -> Response {
             .map_err(|e| warn!("Failed to load positions: {}", e))
             .unwrap_or_default()
             .into_iter()
-            .map(|(p_id, lat, long): (i32, i32, i32)| {
+            .map(|(p_id, lat, long): (String, i32, i32)| {
                 ((lat, long).into(), p_id)
             })
             .collect::<Vec<_>>();
@@ -141,7 +141,7 @@ pub fn days_in_month(
                     target_year, target_month, group_day
                 ),
                 lable: Some(format!("{} pictures", count)),
-                id: photo.id,
+                id: photo.id.clone(),
                 size: photo.get_size(SizeTag::Small),
             }
         })
@@ -162,7 +162,7 @@ pub fn days_in_month(
             .map_err(|e| warn!("Failed to load positions: {}", e))
             .unwrap_or_default()
             .into_iter()
-            .map(|(p_id, lat, long): (i32, i32, i32)| {
+            .map(|(p_id, lat, long): (String, i32, i32)| {
                 ((lat, long).into(), p_id)
             })
             .collect::<Vec<_>>();
@@ -260,7 +260,7 @@ pub fn on_this_day(context: Context) -> Response {
         .map_err(|e| warn!("Failed to load positions: {}", e))
         .unwrap_or_default()
         .into_iter()
-        .map(|(p_id, lat, long): (i32, i32, i32)| ((lat, long).into(), p_id))
+        .map(|(p_id, lat, long): (String, i32, i32)| ((lat, long).into(), p_id))
         .collect::<Vec<_>>();
 
     Builder::new()
@@ -300,7 +300,7 @@ pub fn on_this_day(context: Context) -> Response {
                                 group_year, target_month, target_day
                             ),
                             lable: Some(format!("{} pictures", count)),
-                            id: photo.id,
+                            id: photo.id.clone(),
                             size: photo.get_size(SizeTag::Small),
                         }
                     })
@@ -314,7 +314,7 @@ pub fn on_this_day(context: Context) -> Response {
 pub fn next_image(context: Context, param: FromParam) -> Response {
     use crate::schema::photos::dsl::{date, id};
     let db = context.db();
-    if let Some(from_date) = date_of_img(&db, param.from) {
+    if let Some(from_date) = date_of_img(&db, &param.from) {
         let q = Photo::query(context.is_authorized())
             .select(id)
             .filter(
@@ -322,8 +322,8 @@ pub fn next_image(context: Context, param: FromParam) -> Response {
                     .or(date.eq(from_date).and(id.gt(param.from))),
             )
             .order((date, id));
-        if let Ok(photo) = q.first::<i32>(&db) {
-            return redirect_to_img(photo);
+        if let Ok(photo) = q.first::<String>(&db) {
+            return redirect_to_img(&photo);
         }
     }
     not_found(&context)
@@ -332,7 +332,7 @@ pub fn next_image(context: Context, param: FromParam) -> Response {
 pub fn prev_image(context: Context, param: FromParam) -> Response {
     use crate::schema::photos::dsl::{date, id};
     let db = context.db();
-    if let Some(from_date) = date_of_img(&db, param.from) {
+    if let Some(from_date) = date_of_img(&db, &param.from) {
         let q = Photo::query(context.is_authorized())
             .select(id)
             .filter(
@@ -340,8 +340,8 @@ pub fn prev_image(context: Context, param: FromParam) -> Response {
                     .or(date.eq(from_date).and(id.lt(param.from))),
             )
             .order((date.desc(), id.desc()));
-        if let Ok(photo) = q.first::<i32>(&db) {
-            return redirect_to_img(photo);
+        if let Ok(photo) = q.first::<String>(&db) {
+            return redirect_to_img(&photo);
         }
     }
     not_found(&context)
@@ -349,12 +349,12 @@ pub fn prev_image(context: Context, param: FromParam) -> Response {
 
 #[derive(Deserialize)]
 pub struct FromParam {
-    from: i32,
+    from: String,
 }
 
 pub fn date_of_img(
     db: &SqliteConnection,
-    photo_id: i32,
+    photo_id: &str,
 ) -> Option<NaiveDateTime> {
     use crate::schema::photos::dsl::{date, photos};
     photos.find(photo_id).select(date).first(db).unwrap_or(None)

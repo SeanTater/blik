@@ -12,16 +12,16 @@ pub fn links_by_time<'a>(
     photos: photos::BoxedQuery<'a, Sqlite>,
     range: ImgRange,
     with_date: bool,
-) -> (Vec<PhotoLink>, Vec<(Coord, i32)>) {
+) -> (Vec<PhotoLink>, Vec<(Coord, String)>) {
     let c = context.db();
     use crate::schema::photos::dsl::{date, id};
     let photos =
-        if let Some(from_date) = range.from.map(|i| date_of_img(&c, i)) {
+        if let Some(from_date) = range.from.map(|i| date_of_img(&c, &i)) {
             photos.filter(date.ge(from_date))
         } else {
             photos
         };
-    let photos = if let Some(to_date) = range.to.map(|i| date_of_img(&c, i)) {
+    let photos = if let Some(to_date) = range.to.map(|i| date_of_img(&c, &i)) {
         photos.filter(date.le(to_date))
     } else {
         photos
@@ -57,16 +57,16 @@ pub fn split_to_group_links(
 pub fn get_positions(
     photos: &[Photo],
     c: &SqliteConnection,
-) -> Vec<(Coord, i32)> {
+) -> Vec<(Coord, String)> {
     use crate::schema::positions::dsl::*;
     positions
-        .filter(photo_id.eq_any(photos.iter().map(|p| p.id)))
+        .filter(photo_id.eq_any(photos.iter().map(|p| p.id.clone())))
         .select((photo_id, latitude, longitude))
         .load(c)
         .map_err(|e| warn!("Failed to load positions: {}", e))
         .unwrap_or_default()
         .into_iter()
-        .map(|(p_id, lat, long): (i32, i32, i32)| ((lat, long).into(), p_id))
+        .map(|(p_id, lat, long): (String, i32, i32)| ((lat, long).into(), p_id))
         .collect()
 }
 

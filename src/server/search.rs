@@ -172,10 +172,10 @@ impl SearchQuery {
                     }
                 }
                 "from" => {
-                    result.since = QueryDateTime::from_img(val.parse()?, db)?;
+                    result.since = QueryDateTime::from_img(&val, db)?;
                 }
                 "to" => {
-                    result.until = QueryDateTime::from_img(val.parse()?, db)?;
+                    result.until = QueryDateTime::from_img(&val, db)?;
                 }
                 _ => (), // ignore unknown query parameters
             }
@@ -217,7 +217,7 @@ impl QueryDateTime {
         let until_midnight = NaiveTime::from_hms_milli(23, 59, 59, 999);
         QueryDateTime::new(datetime_from_parts(date, time, until_midnight))
     }
-    fn from_img(photo_id: i32, db: &SqliteConnection) -> Result<Self> {
+    fn from_img(photo_id: &str, db: &SqliteConnection) -> Result<Self> {
         Ok(QueryDateTime::new(
             p::photos
                 .select(p::date)

@@ -3,7 +3,7 @@
 @use crate::server::{Context, PhotoLink};
 @use crate::server::search::SearchQuery;
 
-@(context: &Context, query: &SearchQuery, n: usize, photos: &[PhotoLink], coords: &[(Coord, i32)])
+@(context: &Context, query: &SearchQuery, n: usize, photos: &[PhotoLink], coords: &[(Coord, String)])
 @:base(context, "Search", &[], {}, {
 <main>
   <h1>Search@if n > 0 { <small class="n_hits">(@n hits)</small>}</h1>

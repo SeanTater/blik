@@ -2,7 +2,7 @@
 @use crate::models::{Coord, Person};
 @use crate::server::{Context, PhotoLink};
 
-@(context: &Context, photos: &[PhotoLink], coords: &[(Coord, i32)], person: &Person)
+@(context: &Context, photos: &[PhotoLink], coords: &[(Coord, String)], person: &Person)
 @:page_base(context, &format!("Photos with {}", person.person_name), &[], {}, {
   <div class="group"@:data_positions(coords)>
     @for p in photos {@:photo_link(p)}

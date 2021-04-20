@@ -64,7 +64,7 @@ pub async fn show_image(
 /// Someting like 4711-s.jpg
 #[derive(Debug, Eq, PartialEq)]
 pub struct ImgName {
-    id: i32,
+    id: String,
     size: SizeTag,
 }
 
@@ -94,7 +94,7 @@ fn parse_good_imgname() {
     assert_eq!(
         "4711-s.jpg".parse(),
         Ok(ImgName {
-            id: 4711,
+            id: "980a09d7f07a9b7a".to_string(),
             size: SizeTag::Small,
         })
     )

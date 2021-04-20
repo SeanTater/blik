@@ -2,7 +2,7 @@
 @use crate::server::{Context, PhotoLink};
 @use super::{data_positions, page_base, photo_link};
 
-@(context: &Context, photos: &[PhotoLink], coords: &[(Coord, i32)], tag: &Tag)
+@(context: &Context, photos: &[PhotoLink], coords: &[(Coord, String)], tag: &Tag)
 
 @:page_base(context, &format!("Photos tagged {}", tag.tag_name), &[], {}, {
   <div class="group"@:data_positions(coords)>

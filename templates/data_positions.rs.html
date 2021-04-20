@@ -1,5 +1,5 @@
 @use crate::models::Coord;
 
-@(coords: &[(Coord, i32)])
+@(coords: &[(Coord, String)])
 @if let Some(((c, p), rest)) = coords.split_first()
 { data-positions="[[@c.x,@c.y,@p]@for (c,p) in rest {,[@c.x,@c.y,@p]}]"}

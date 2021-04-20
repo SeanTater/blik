@@ -92,7 +92,7 @@ fn rotate(context: Context, form: RotateForm) -> Response {
 
 #[derive(Deserialize)]
 struct RotateForm {
-    image: i32,
+    image: String,
     angle: i16,
 }
 
@@ -119,24 +119,24 @@ async fn set_tag(context: Context, form: TagForm) -> WarpResult {
     };
     use crate::schema::photo_tags::dsl::*;
     let q = photo_tags
-        .filter(photo_id.eq(form.image))
+        .filter(photo_id.eq(&form.image))
         .filter(tag_id.eq(tag.id));
     if q.first::<PhotoTag>(&c).is_ok() {
         info!("Photo #{} already has {:?}", form.image, form.tag);
     } else {
         info!("Add {:?} on photo #{}!", form.tag, form.image);
         diesel::insert_into(photo_tags)
-            .values((photo_id.eq(form.image), tag_id.eq(tag.id)))
+            .values((photo_id.eq(&form.image), tag_id.eq(tag.id)))
             .execute(&c)
             .context("Tag a photo")
             .or_reject()?;
     }
-    Ok(redirect_to_img(form.image))
+    Ok(redirect_to_img(&form.image))
 }
 
 #[derive(Deserialize)]
 struct TagForm {
-    image: i32,
+    image: String,
     tag: String,
 }
 
@@ -151,24 +151,24 @@ async fn set_person(context: Context, form: PersonForm) -> WarpResult {
         .or_reject()?;
     use crate::schema::photo_people::dsl::*;
     let q = photo_people
-        .filter(photo_id.eq(form.image))
+        .filter(photo_id.eq(&form.image))
         .filter(person_id.eq(person.id));
     if q.first::<PhotoPerson>(&c).is_ok() {
         info!("Photo #{} already has {:?}", form.image, person);
     } else {
         info!("Add {:?} on photo #{}!", person, form.image);
         diesel::insert_into(photo_people)
-            .values((photo_id.eq(form.image), person_id.eq(person.id)))
+            .values((photo_id.eq(&form.image), person_id.eq(person.id)))
             .execute(&c)
             .context("Name person in photo")
             .or_reject()?;
     }
-    Ok(redirect_to_img(form.image))
+    Ok(redirect_to_img(&form.image))
 }
 
 #[derive(Deserialize)]
 struct PersonForm {
-    image: i32,
+    image: String,
     person: String,
 }
 
@@ -180,10 +180,10 @@ async fn set_grade(context: Context, form: GradeForm) -> WarpResult {
         info!("Should set grade of #{} to {}", form.image, form.grade);
         use crate::schema::photos::dsl::{grade, photos};
         let q =
-            diesel::update(photos.find(form.image)).set(grade.eq(form.grade));
+            diesel::update(photos.find(&form.image)).set(grade.eq(form.grade));
         match q.execute(&context.db()) {
             Ok(1) => {
-                return Ok(redirect_to_img(form.image));
+                return Ok(redirect_to_img(&form.image));
             }
             Ok(0) => (),
             Ok(n) => {
@@ -204,7 +204,7 @@ async fn set_grade(context: Context, form: GradeForm) -> WarpResult {
 
 #[derive(Deserialize)]
 struct GradeForm {
-    image: i32,
+    image: String,
     grade: i16,
 }
 
@@ -212,30 +212,29 @@ async fn set_location(context: Context, form: CoordForm) -> WarpResult {
     if !context.is_authorized() {
         return permission_denied();
     }
-    let image = form.image;
     let coord = form.coord();
-    info!("Should set location of #{} to {:?}.", image, coord);
+    info!("Should set location of #{} to {:?}.",  form.image, coord);
 
     let (lat, lng) = ((coord.x * 1e6) as i32, (coord.y * 1e6) as i32);
     use crate::schema::positions::dsl::*;
     let db = context.db();
     match diesel::insert_into(positions)
-        .values((photo_id.eq(image), latitude.eq(lat), longitude.eq(lng)))
+        .values((photo_id.eq(&form.image), latitude.eq(lat), longitude.eq(lng)))
         .execute(&db)
     {
         Ok(_) => Ok(0),
-        Err(_) => diesel::update(positions.find(image))
+        Err(_) => diesel::update(positions.find(&form.image))
             .set((latitude.eq(lat), longitude.eq(lng)))
             .execute(&db),
     }
     .context("Insert into image positions")
     .or_reject()?;
-    Ok(redirect_to_img(form.image))
+    Ok(redirect_to_img(&form.image))
 }
 
 #[derive(Deserialize)]
 struct CoordForm {
-    image: i32,
+    image: String,
     lat: f64,
     lng: f64,
 }

@@ -5,7 +5,7 @@ use chrono::Datelike;
 pub struct PhotoLink {
     pub title: Option<String>,
     pub href: String,
-    pub id: i32,
+    pub id: String,
     pub size: (u32, u32),
     pub lable: Option<String>,
 }
@@ -106,7 +106,7 @@ impl PhotoLink {
             PhotoLink {
                 title,
                 href: url.into(),
-                id: photo.id,
+                id: photo.id.clone(),
                 size: photo.get_size(SizeTag::Small),
                 lable: Some(lable),
             }
@@ -116,7 +116,7 @@ impl PhotoLink {
         PhotoLink {
             title: p.date.map(|d| d.format("%F").to_string()),
             href: format!("/img/{}", p.id),
-            id: p.id,
+            id: p.id.clone(),
             size: p.get_size(SizeTag::Small),
             lable: p.date.map(|d| d.format("%T").to_string()),
         }
@@ -125,7 +125,7 @@ impl PhotoLink {
         PhotoLink {
             title: None, // p.date.map(|d| d.format("%F").to_string()),
             href: format!("/img/{}", p.id),
-            id: p.id,
+            id: p.id.clone(),
             size: p.get_size(SizeTag::Small),
             lable: p.date.map(|d| d.format("%T").to_string()),
         }

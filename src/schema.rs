@@ -16,7 +16,7 @@ table! {
 table! {
     photo_people (id) {
         id -> Integer,
-        photo_id -> Integer,
+        photo_id -> Text,
         person_id -> Integer,
     }
 }
@@ -24,7 +24,7 @@ table! {
 table! {
     photo_places (id) {
         id -> Integer,
-        photo_id -> Integer,
+        photo_id -> Text,
         place_id -> Integer,
     }
 }
@@ -32,14 +32,14 @@ table! {
 table! {
     photo_tags (id) {
         id -> Integer,
-        photo_id -> Integer,
+        photo_id -> Text,
         tag_id -> Integer,
     }
 }
 
 table! {
     photos (id) {
-        id -> Integer,
+        id -> Text,
         path -> Text,
         date -> Nullable<Timestamp>,
         year -> Integer,
@@ -66,8 +66,8 @@ table! {
 
 table! {
     positions (id) {
-        id -> Integer,
-        photo_id -> Integer,
+        id -> Text,
+        photo_id -> Text,
         latitude -> Integer,
         longitude -> Integer,
     }

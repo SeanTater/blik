@@ -137,7 +137,7 @@ fn not_found(context: &Context) -> Response {
         .unwrap()
 }
 
-fn redirect_to_img(image: i32) -> Response {
+fn redirect_to_img(image: &str) -> Response {
     redirect(&format!("/img/{}", image))
 }
 
@@ -180,16 +180,16 @@ fn random_image(context: Context) -> Response {
         .select(id)
         .limit(1)
         .order(sql::<Integer>("random()"))
-        .first(&context.db())
+        .first::<String>(&context.db())
     {
         info!("Random: {:?}", photo);
-        redirect_to_img(photo)
+        redirect_to_img(&photo)
     } else {
         not_found(&context)
     }
 }
 
-fn photo_details(id: i32, context: Context) -> Response {
+fn photo_details(id: String, context: Context) -> Response {
     use crate::schema::photos::dsl::photos;
     let c = context.db();
     if let Ok(tphoto) = photos.find(id).first::<Photo>(&c) {
@@ -210,8 +210,8 @@ fn photo_details(id: i32, context: Context) -> Response {
                                         d.month() as i32,
                                         d.day() as i32,
                                     ),
-                                    Link::prev(tphoto.id),
-                                    Link::next(tphoto.id),
+                                    Link::prev(&tphoto.id),
+                                    Link::next(&tphoto.id),
                                 ]
                             })
                             .unwrap_or_default(),
@@ -257,14 +257,14 @@ impl Link {
             monthname(month),
         ))
     }
-    fn prev(from: i32) -> Self {
+    fn prev(from: &str) -> Self {
         Html(format!(
             "<a href='/prev?from={}' title='Previous image (by time)'>\
              \u{2190}</a>",
             from,
         ))
     }
-    fn next(from: i32) -> Self {
+    fn next(from: &str) -> Self {
         Html(format!(
             "<a href='/next?from={}' title='Next image (by time)' \
              accessKey='n'>\u{2192}</a>",
@@ -272,13 +272,11 @@ impl Link {
         ))
     }
 }
-
 #[derive(Debug, Default, Deserialize)]
 pub struct ImgRange {
-    pub from: Option<i32>,
-    pub to: Option<i32>,
+    pub from: Option<String>,
+    pub to: Option<String>,
 }
-
 /// Make anything that can be an anyhow Error into a Rejection
 #[derive(Debug)]
 struct AnyhowRejection(anyhow::Error);

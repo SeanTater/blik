@@ -19,7 +19,7 @@ use std::cmp::max;
 
 #[derive(AsChangeset, Clone, Debug, Identifiable, Queryable)]
 pub struct Photo {
-    pub id: i32,
+    pub id: String,
     pub path: String,
     pub date: Option<NaiveDateTime>,
     pub year: i32,
@@ -79,13 +79,13 @@ impl Photo {
             // TODO Merge updates to one update statement!
             if pic.width != newwidth || pic.height != newheight {
                 change = true;
-                diesel::update(p::photos.find(pic.id))
+                diesel::update(p::photos.find(&pic.id))
                     .set((p::width.eq(newwidth), p::height.eq(newheight)))
                     .execute(db)?;
             }
             if exifdate.is_some() && exifdate != pic.date {
                 change = true;
-                diesel::update(p::photos.find(pic.id))
+                diesel::update(p::photos.find(&pic.id))
                     .set(p::date.eq(exifdate))
                     .execute(db)?;
             }
@@ -145,7 +145,7 @@ impl Photo {
                 h::id.eq_any(
                     ph::photo_people
                         .select(ph::person_id)
-                        .filter(ph::photo_id.eq(self.id)),
+                        .filter(ph::photo_id.eq(&self.id)),
                 ),
             )
             .load(db)
@@ -160,7 +160,7 @@ impl Photo {
                 l::id.eq_any(
                     pl::photo_places
                         .select(pl::place_id)
-                        .filter(pl::photo_id.eq(self.id)),
+                        .filter(pl::photo_id.eq(&self.id)),
                 ),
             )
             .order(l::osm_level.desc())
@@ -172,7 +172,7 @@ impl Photo {
                 t::id.eq_any(
                     pt::photo_tags
                         .select(pt::tag_id)
-                        .filter(pt::photo_id.eq(self.id)),
+                        .filter(pt::photo_id.eq(&self.id)),
                 ),
             )
             .load(db)
@@ -180,7 +180,7 @@ impl Photo {
 
     pub fn load_position(&self, db: &SqliteConnection) -> Option<Coord> {
         match pos::positions
-            .filter(pos::photo_id.eq(self.id))
+            .filter(pos::photo_id.eq(&self.id))
             .select((pos::latitude, pos::longitude))
             .first::<(i32, i32)>(db)
         {
@@ -214,8 +214,7 @@ impl Photo {
     pub fn mock(y: i32, mo: u32, da: u32, h: u32, m: u32, s: u32) -> Self {
         use chrono::naive::NaiveDate;
         Photo {
-            id: ((((((y as u32 * 12) + mo) * 30 + da) * 24) + h) * 60 + s)
-                as i32,
+            id: format!("{}-{}-{}T{}:{}:{}",y,mo,da,h,m,s),
             path: format!(
                 "{}/{:02}/{:02}/IMG{:02}{:02}{:02}.jpg",
                 y, mo, da, h, m, s,
@@ -256,7 +255,7 @@ impl Facet for Tag {
 #[derive(Debug, Clone, Queryable)]
 pub struct PhotoTag {
     pub id: i32,
-    pub photo_id: i32,
+    pub photo_id: String,
     pub tag_id: i32,
 }
 
@@ -297,7 +296,7 @@ impl Facet for Person {
 #[derive(Debug, Clone, Queryable)]
 pub struct PhotoPerson {
     pub id: i32,
-    pub photo_id: i32,
+    pub photo_id: String,
     pub person_id: i32,
 }
 
@@ -319,7 +318,7 @@ impl Facet for Place {
 #[derive(Debug, Clone, Queryable)]
 pub struct PhotoPlace {
     pub id: i32,
-    pub photo_id: i32,
+    pub photo_id: String,
     pub place_id: i32,
 }
 
