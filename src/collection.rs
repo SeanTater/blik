@@ -35,7 +35,6 @@ impl Collection {
 
     pub fn save_photo(
         &self,
-        original_filename: Option<&str>,
         contents: &[u8],
     ) -> Result<(String, PathBuf)> {
         let ext = *image::guess_format(contents)?
@@ -43,10 +42,7 @@ impl Collection {
             .first()
             .unwrap_or(&"image");
         let hash = format!("{:x}", sha2::Sha256::digest(&contents));
-        let hashname = format!("{}.{}", hash, ext);
-        let filename = original_filename
-            .filter(|n| n.contains("/") || n.contains("\\"))
-            .unwrap_or(&hashname);
+        let filename = format!("{}.{}", hash, ext);
         let filename = PathBuf::from(filename);
         let path = self.basedir.join(&filename);
         let mut file = std::fs::OpenOptions::new()
