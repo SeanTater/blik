@@ -46,10 +46,6 @@ impl Photo {
         self.is_public
     }
 
-    pub fn cache_key(&self, size: SizeTag) -> String {
-        format!("rp{}{:?}", self.id, size)
-    }
-
     #[allow(dead_code)]
     pub fn query<'a>(auth: bool) -> photos::BoxedQuery<'a, Sqlite> {
         let result = p::photos
@@ -104,6 +100,7 @@ impl Photo {
 
     pub fn create_or_set_basics(
         db: &SqliteConnection,
+        id: &str,
         file_path: &str,
         newwidth: i32,
         newheight: i32,
@@ -117,6 +114,7 @@ impl Photo {
         } else {
             diesel::insert_into(p::photos)
                 .values((
+                    p::id.eq(id),
                     p::path.eq(file_path),
                     p::date.eq(exifdate),
                     p::rotation.eq(exifrotation),

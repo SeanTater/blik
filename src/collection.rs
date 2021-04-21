@@ -9,6 +9,7 @@ use std::path::{Path, PathBuf};
 use std::{fs, io};
 use tokio::task::{spawn_blocking, JoinError};
 use anyhow::{Context, Result};
+use sha2::Digest;
 
 pub struct Collection {
     basedir: PathBuf,
@@ -36,11 +37,14 @@ impl Collection {
         file_path: &Path,
     ) -> Result<()> {
         let ref db = self.pool.get()?;
-        let exif = load_exif(&self.basedir.join(file_path)).context("Failed reading exif data")?;
+        let image_bytes = std::fs::read(self.basedir.join(file_path))?;
+        let exif = load_exif(&image_bytes).context("Failed reading exif data")?;
         let width = exif.width.ok_or(anyhow!("Missing width"))?;
         let height = exif.height.ok_or(anyhow!("Missing height"))?;
+        let id = format!("{:x}", sha2::Sha256::digest(&image_bytes));
         let photo = match Photo::create_or_set_basics(
             db,
+            &id,
             file_path.to_str().ok_or(anyhow!("Invalid characters in filename"))?,
             width as i32,
             height as i32,
@@ -116,18 +120,22 @@ impl Collection {
     }
 }
 
-fn load_exif(path: &Path) -> Result<ExifData> {
-    let file = File::open(path)?;
-    let reader = &mut BufReader::new(&file);
+/// Read EXIF data from a slice
+///
+/// This could be done with a reader but there's no reason to because we need
+/// to read the whole file for the hash anyway, and I think it's safe to assume
+/// it's smaller than memory
+fn load_exif(slice: &[u8]) -> Result<ExifData> {
+    let reader = std::io::Cursor::new(slice);
     if let Ok(mut exif) = ExifData::read_from(reader) {
         if exif.width.is_none() || exif.height.is_none() {
-            if let Ok((width, height)) = actual_image_size(&path) {
+            if let Ok((width, height)) = actual_image_size(slice) {
                 exif.width = Some(width);
                 exif.height = Some(height);
             }
         }
         Ok(exif)
-    } else if let Ok((width, height)) = actual_image_size(&path) {
+    } else if let Ok((width, height)) = actual_image_size(slice) {
         let mut meta = ExifData::default();
         meta.width = Some(width);
         meta.height = Some(height);
@@ -137,8 +145,8 @@ fn load_exif(path: &Path) -> Result<ExifData> {
     }
 }
 
-fn actual_image_size(path: &Path) -> Result<(u32, u32), ImageError> {
-    let image = image::open(&path)?;
+fn actual_image_size(image_slice: &[u8]) -> Result<(u32, u32), ImageError> {
+    let image = image::load_from_memory(&image_slice)?;
     Ok((image.width(), image.height()))
 }
 
