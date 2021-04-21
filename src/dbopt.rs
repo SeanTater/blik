@@ -3,7 +3,10 @@ use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
 use diesel::sqlite::SqliteConnection;
 use diesel::{Connection, ConnectionError};
 use log::debug;
-use std::{sync::Arc, time::{Duration, Instant}};
+use std::{
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 pub type SqlitePool = Arc<Pool<ConnectionManager<SqliteConnection>>>;
 pub type PooledSqlite = PooledConnection<ConnectionManager<SqliteConnection>>;

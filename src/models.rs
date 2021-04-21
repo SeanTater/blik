@@ -212,7 +212,7 @@ impl Photo {
     pub fn mock(y: i32, mo: u32, da: u32, h: u32, m: u32, s: u32) -> Self {
         use chrono::naive::NaiveDate;
         Photo {
-            id: format!("{}-{}-{}T{}:{}:{}",y,mo,da,h,m,s),
+            id: format!("{}-{}-{}T{}:{}:{}", y, mo, da, h, m, s),
             path: format!(
                 "{}/{:02}/{:02}/IMG{:02}{:02}{:02}.jpg",
                 y, mo, da, h, m, s,

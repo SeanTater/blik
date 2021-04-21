@@ -1,8 +1,8 @@
 use super::AnyhowRejectionExt;
 use super::BuilderExt;
 use super::{error_response, not_found, Context};
-use crate::models::Photo;
 use crate::collection::{get_scaled_jpeg, ImageLoadFailed};
+use crate::models::Photo;
 use diesel::prelude::*;
 use warp::http::response::Builder;
 use warp::http::{header, StatusCode};

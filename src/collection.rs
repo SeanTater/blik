@@ -1,27 +1,27 @@
-use crate::{dbopt, models::Photo, models::Modification};
 use crate::myexif::ExifData;
-use diesel::{QueryDsl, RunQueryDsl, insert_into, ExpressionMethods};
+use crate::{dbopt, models::Modification, models::Photo};
+use anyhow::{Context, Result};
+use diesel::{insert_into, ExpressionMethods, QueryDsl, RunQueryDsl};
 use image::imageops::FilterType;
 use image::{self, GenericImageView, ImageError, ImageFormat};
 use io::Write;
 use log::{debug, info, warn};
-use std::{ffi::OsStr, fs::File, io::BufReader};
+use sha2::Digest;
 use std::path::{Path, PathBuf};
+use std::{ffi::OsStr, fs::File, io::BufReader};
 use std::{fs, io};
 use tokio::task::{spawn_blocking, JoinError};
-use anyhow::{Context, Result};
-use sha2::Digest;
 
 pub struct Collection {
     basedir: PathBuf,
-    pool: dbopt::SqlitePool
+    pool: dbopt::SqlitePool,
 }
 
 impl Collection {
     pub fn new(basedir: &Path, pool: dbopt::SqlitePool) -> Self {
         Collection {
             basedir: basedir.into(),
-            pool
+            pool,
         }
     }
 
@@ -36,9 +36,12 @@ impl Collection {
     pub fn save_photo(
         &self,
         original_filename: Option<&str>,
-        contents: &[u8]
+        contents: &[u8],
     ) -> Result<(String, PathBuf)> {
-        let ext = *image::guess_format(contents)?.extensions_str().first().unwrap_or(&"image");
+        let ext = *image::guess_format(contents)?
+            .extensions_str()
+            .first()
+            .unwrap_or(&"image");
         let hash = format!("{:x}", sha2::Sha256::digest(&contents));
         let hashname = format!("{}.{}", hash, ext);
         let filename = original_filename
@@ -46,26 +49,29 @@ impl Collection {
             .unwrap_or(&hashname);
         let filename = PathBuf::from(filename);
         let path = self.basedir.join(&filename);
-        let mut file = std::fs::OpenOptions::new().create_new(true).write(true).open(path)?;
+        let mut file = std::fs::OpenOptions::new()
+            .create_new(true)
+            .write(true)
+            .open(path)?;
         file.write_all(contents)?;
         self.index_photo(&filename)?;
         Ok((hash, filename))
     }
 
-    pub fn index_photo(
-        &self,
-        file_path: &Path,
-    ) -> Result<()> {
+    pub fn index_photo(&self, file_path: &Path) -> Result<()> {
         let ref db = self.pool.get()?;
         let image_bytes = std::fs::read(self.basedir.join(file_path))?;
-        let exif = load_exif(&image_bytes).context("Failed reading exif data")?;
+        let exif =
+            load_exif(&image_bytes).context("Failed reading exif data")?;
         let width = exif.width.ok_or(anyhow!("Missing width"))?;
         let height = exif.height.ok_or(anyhow!("Missing height"))?;
         let id = format!("{:x}", sha2::Sha256::digest(&image_bytes));
         let photo = match Photo::create_or_set_basics(
             db,
             &id,
-            file_path.to_str().ok_or(anyhow!("Invalid characters in filename"))?,
+            file_path
+                .to_str()
+                .ok_or(anyhow!("Invalid characters in filename"))?,
             width as i32,
             height as i32,
             exif.date(),
@@ -102,7 +108,12 @@ impl Collection {
                     );
                 }
             } else {
-                info!("Position for {} is {} {}", file_path.display(), lat, long);
+                info!(
+                    "Position for {} is {} {}",
+                    file_path.display(),
+                    lat,
+                    long
+                );
                 insert_into(positions)
                     .values((
                         photo_id.eq(&photo.id),
@@ -129,9 +140,13 @@ impl Collection {
                 if fs::metadata(&path)?.is_dir() {
                     self.find_files(&path, cb)?;
                 } else {
-                    let subpath = path
-                        .strip_prefix(&self.basedir)
-                        .map_err(|_| anyhow!("Directory not in collection: {}", self.basedir.display()))?;
+                    let subpath =
+                        path.strip_prefix(&self.basedir).map_err(|_| {
+                            anyhow!(
+                                "Directory not in collection: {}",
+                                self.basedir.display()
+                            )
+                        })?;
                     cb(&subpath);
                 }
             }

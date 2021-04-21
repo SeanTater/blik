@@ -1,6 +1,6 @@
 use super::Args;
-use crate::dbopt::{PooledSqlite, SqlitePool};
 use crate::collection::Collection;
+use crate::dbopt::{PooledSqlite, SqlitePool};
 use chrono::{DateTime, Utc};
 use log::{debug, warn};
 use medallion::{Header, Payload, Token};

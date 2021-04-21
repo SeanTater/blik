@@ -66,7 +66,9 @@ pub fn get_positions(
         .map_err(|e| warn!("Failed to load positions: {}", e))
         .unwrap_or_default()
         .into_iter()
-        .map(|(p_id, lat, long): (String, i32, i32)| ((lat, long).into(), p_id))
+        .map(|(p_id, lat, long): (String, i32, i32)| {
+            ((lat, long).into(), p_id)
+        })
         .collect()
 }
 

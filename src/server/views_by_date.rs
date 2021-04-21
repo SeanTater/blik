@@ -260,7 +260,9 @@ pub fn on_this_day(context: Context) -> Response {
         .map_err(|e| warn!("Failed to load positions: {}", e))
         .unwrap_or_default()
         .into_iter()
-        .map(|(p_id, lat, long): (String, i32, i32)| ((lat, long).into(), p_id))
+        .map(|(p_id, lat, long): (String, i32, i32)| {
+            ((lat, long).into(), p_id)
+        })
         .collect::<Vec<_>>();
 
     Builder::new()

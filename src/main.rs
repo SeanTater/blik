@@ -6,10 +6,10 @@ extern crate diesel;
 extern crate anyhow;
 
 mod adm;
+mod collection;
 mod dbopt;
 mod models;
 mod myexif;
-mod collection;
 mod pidfiles;
 mod schema;
 mod server;

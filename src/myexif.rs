@@ -26,7 +26,9 @@ impl ExifData {
     ///
     /// This could be a file or an IO cursor depending on your use case
     pub fn read_from<R>(mut raw_reader: R) -> Result<Self>
-        where R: std::io::BufRead + std::io::Seek {
+    where
+        R: std::io::BufRead + std::io::Seek,
+    {
         let mut result = Self::default();
         let reader = Reader::new().read_from_container(&mut raw_reader)?;
         for f in reader.fields() {

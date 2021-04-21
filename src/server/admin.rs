@@ -1,20 +1,25 @@
 //! Admin-only views, generally called by javascript.
+use super::AnyhowRejectionExt;
 use super::{
-    not_found, permission_denied, redirect_to_img, AnyhowRejection,
-    Context, WarpResult,
+    not_found, permission_denied, redirect_to_img, AnyhowRejection, Context,
+    WarpResult,
 };
-use futures::stream::TryStreamExt;
 use crate::models::{Coord, Photo};
 use anyhow::Context as AContext;
 use diesel::{self, prelude::*};
+use futures::stream::TryStreamExt;
 use log::{info, warn};
 use serde::Deserialize;
 use slug::slugify;
-use warp::{Buf, filters::BoxedFilter, hyper::body::Bytes, multipart::{FormData, Part}};
 use warp::http::response::Builder;
 use warp::reply::Response;
+use warp::{
+    filters::BoxedFilter,
+    hyper::body::Bytes,
+    multipart::{FormData, Part},
+    Buf,
+};
 use warp::{Filter, Reply};
-use super::AnyhowRejectionExt;
 
 pub fn routes(s: BoxedFilter<(Context,)>) -> BoxedFilter<(impl Reply,)> {
     use warp::{body, path, post};
@@ -34,34 +39,47 @@ pub fn routes(s: BoxedFilter<(Context,)>) -> BoxedFilter<(impl Reply,)> {
         .unify()
         .or(path("rotate").and(s.clone()).and(body::form()).map(rotate))
         .unify()
-        .or(path("tag").and(s.clone()).and(body::form()).and_then(set_tag))
+        .or(path("tag")
+            .and(s.clone())
+            .and(body::form())
+            .and_then(set_tag))
         .unify()
-        .or(path("upload").and(s).and(warp::filters::multipart::form().max_length(1 << 30)).and_then(upload_image))
+        .or(path("upload")
+            .and(s)
+            .and(warp::filters::multipart::form().max_length(1 << 30))
+            .and_then(upload_image))
         .unify();
     post().and(route).boxed()
 }
 
 async fn upload_image(context: Context, form: FormData) -> WarpResult {
-    let parts: Vec<Part> = form.try_collect().await
-        .map_err(|e| {
-            eprintln!("form error: {}", e);
-            warp::reject::reject()
-        })?;
+    let parts: Vec<Part> = form.try_collect().await.map_err(|e| {
+        eprintln!("form error: {}", e);
+        warp::reject::reject()
+    })?;
     for mut part in parts {
         match part.data().await {
             None => {
                 eprintln!("Missing data");
-                return Err(warp::reject::reject())
+                return Err(warp::reject::reject());
             }
             Some(Err(x)) => {
                 eprintln!("Failed reading data at {}", x);
-                return Err(warp::reject::reject())
-            },
+                return Err(warp::reject::reject());
+            }
             Some(Ok(mut buf)) => {
-                println!("Got a new part {}, with type {:?}, and {} bytes left", part.name(), part.content_type(), buf.remaining());
+                println!(
+                    "Got a new part {}, with type {:?}, and {} bytes left",
+                    part.name(),
+                    part.content_type(),
+                    buf.remaining()
+                );
                 context
                     .photos()
-                    .save_photo(part.filename(), &buf.copy_to_bytes(buf.remaining()))
+                    .save_photo(
+                        part.filename(),
+                        &buf.copy_to_bytes(buf.remaining()),
+                    )
                     .map_err(|_| warp::reject::reject())?;
             }
         }
@@ -216,13 +234,17 @@ async fn set_location(context: Context, form: CoordForm) -> WarpResult {
         return permission_denied();
     }
     let coord = form.coord();
-    info!("Should set location of #{} to {:?}.",  form.image, coord);
+    info!("Should set location of #{} to {:?}.", form.image, coord);
 
     let (lat, lng) = ((coord.x * 1e6) as i32, (coord.y * 1e6) as i32);
     use crate::schema::positions::dsl::*;
     let db = context.db();
     match diesel::insert_into(positions)
-        .values((photo_id.eq(&form.image), latitude.eq(lat), longitude.eq(lng)))
+        .values((
+            photo_id.eq(&form.image),
+            latitude.eq(lat),
+            longitude.eq(lng),
+        ))
         .execute(&db)
     {
         Ok(_) => Ok(0),
