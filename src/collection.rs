@@ -3,6 +3,7 @@ use crate::myexif::ExifData;
 use diesel::{QueryDsl, RunQueryDsl, insert_into, ExpressionMethods};
 use image::imageops::FilterType;
 use image::{self, GenericImageView, ImageError, ImageFormat};
+use io::Write;
 use log::{debug, info, warn};
 use std::{ffi::OsStr, fs::File, io::BufReader};
 use std::path::{Path, PathBuf};
@@ -30,6 +31,25 @@ impl Collection {
 
     pub fn has_file<S: AsRef<OsStr> + ?Sized>(&self, path: &S) -> bool {
         self.basedir.join(Path::new(path)).is_file()
+    }
+
+    pub fn save_photo(
+        &self,
+        original_filename: Option<&str>,
+        contents: &[u8]
+    ) -> Result<(String, PathBuf)> {
+        let ext = *image::guess_format(contents)?.extensions_str().first().unwrap_or(&"image");
+        let hash = format!("{:x}", sha2::Sha256::digest(&contents));
+        let hashname = format!("{}.{}", hash, ext);
+        let filename = original_filename
+            .filter(|n| n.contains("/") || n.contains("\\"))
+            .unwrap_or(&hashname);
+        let filename = PathBuf::from(filename);
+        let path = self.basedir.join(&filename);
+        let mut file = std::fs::OpenOptions::new().create_new(true).write(true).open(path)?;
+        file.write_all(contents)?;
+        self.index_photo(&filename)?;
+        Ok((hash, filename))
     }
 
     pub fn index_photo(

@@ -57,13 +57,16 @@ async fn upload_image(context: Context, form: FormData) -> WarpResult {
                 eprintln!("Failed reading data at {}", x);
                 return Err(warp::reject::reject())
             },
-            Some(Ok(buf)) => {
+            Some(Ok(mut buf)) => {
                 println!("Got a new part {}, with type {:?}, and {} bytes left", part.name(), part.content_type(), buf.remaining());
+                context
+                    .photos()
+                    .save_photo(part.filename(), &buf.copy_to_bytes(buf.remaining()))
+                    .map_err(|_| warp::reject::reject())?;
             }
         }
     }
     Ok(Builder::new().body("ok".into()).unwrap())
-    //Err(warp::reject::custom(AnyhowRejection(anyhow!("Failed to upload image, {} bytes long", image_form.image.len()))))
 }
 
 fn rotate(context: Context, form: RotateForm) -> Response {
