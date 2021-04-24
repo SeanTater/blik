@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+    <form action="/login" method="post">
+      @if let Some(message) = message {<p>@message</p>}
+      <p><label for="code">Login Code:</label>
+	<input id="code" name="code"></p>
+      <p><span>@if let Some(ref next) = next {
+	  <input type="hidden" name="next" value="@next">
+	  }</span>
+	<input type="submit" value="Log in">
+      </p>
+    </form>
+{% endblock content %}

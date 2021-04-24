@@ -1,7 +1,7 @@
 //! API views
 use super::login::LoginForm;
 use super::Context;
-use crate::models::{Photo, SizeTag};
+use crate::models::Photo;
 use diesel::{self, prelude::*, result::Error as DbError, update};
 use log::warn;
 use serde::{Deserialize, Serialize};

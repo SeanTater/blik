@@ -1,7 +1,7 @@
 mod admin;
 mod api;
 mod autocomplete;
-mod context;
+pub mod context;
 mod image;
 mod login;
 mod photolink;
@@ -12,7 +12,6 @@ mod urlstring;
 mod views_by_category;
 mod views_by_date;
 
-use self::context::create_session_filter;
 pub use self::context::{Context, ContextFilter};
 pub use self::photolink::PhotoLink;
 use self::render_ructe::BuilderExt;
@@ -25,6 +24,7 @@ use crate::pidfiles::handle_pid_file;
 use crate::templates::{self, Html, RenderRucte};
 use anyhow::Result;
 use chrono::Datelike;
+use context::GlobalContext;
 use diesel::prelude::*;
 use log::info;
 use serde::Deserialize;
@@ -34,6 +34,7 @@ use warp::filters::path::Tail;
 use warp::http::{header, response::Builder, StatusCode};
 use warp::reply::Response;
 use warp::{self, Filter, Rejection, Reply};
+use std::sync::Arc;
 
 #[derive(StructOpt)]
 #[structopt(rename_all = "kebab-case")]
@@ -60,47 +61,65 @@ pub struct Args {
     jwt_key: String,
 }
 
-pub async fn run(args: &Args) -> Result<()> {
-    if let Some(pidfile) = &args.pidfile {
-        handle_pid_file(&pidfile, args.replace).unwrap()
-    }
-    let session_filter = create_session_filter(args);
-    let s = move || session_filter.clone();
-    use warp::filters::query::query;
-    use warp::path::{end, param};
-    use warp::{body, get, path, post};
-    let static_routes = path("static")
-        .and(get())
-        .and(path::tail())
-        .and_then(static_file);
-    #[rustfmt::skip]
-    let routes = warp::any()
-        .and(static_routes)
-        .or(get().and(path("login")).and(end()).and(s()).and(query()).map(login::get_login))
-        .or(post().and(path("login")).and(end()).and(s()).and(body::form()).map(login::post_login))
-        .or(path("logout").and(end()).and(s()).map(login::logout))
-        .or(get().and(end()).and(s()).map(all_years))
-        .or(get().and(path("img")).and(param()).and(end()).and(s()).map(photo_details))
-        .or(get().and(path("img")).and(param()).and(param()).and(end()).and(s()).and_then(image::show_image))
-        .or(get().and(path("0")).and(end()).and(s()).map(all_null_date))
-        .or(get().and(param()).and(end()).and(s()).map(months_in_year))
-        .or(get().and(param()).and(param()).and(end()).and(s()).map(days_in_month))
-        .or(get().and(param()).and(param()).and(param()).and(end()).and(query()).and(s()).map(all_for_day))
-        .or(path("person").and(person_routes(s())))
-        .or(path("place").and(place_routes(s())))
-        .or(path("tag").and(tag_routes(s())))
-        .or(get().and(path("random")).and(end()).and(s()).map(random_image))
-        .or(get().and(path("thisday")).and(end()).and(s()).map(on_this_day))
-        .or(get().and(path("next")).and(end()).and(s()).and(query()).map(next_image))
-        .or(get().and(path("prev")).and(end()).and(s()).and(query()).map(prev_image))
-        .or(path("ac").and(autocomplete::routes(s())))
-        .or(path("search").and(end()).and(get()).and(s()).and(query()).map(search))
-        .or(path("api").and(api::routes(s())))
-        .or(path("adm").and(admin::routes(s())));
-    warp::serve(routes.recover(customize_error))
-        .run(args.listen)
-        .await;
+// pub async fn run_old(args: &Args) -> Result<()> {
+//     if let Some(pidfile) = &args.pidfile {
+//         handle_pid_file(&pidfile, args.replace).unwrap()
+//     }
+//     use warp::filters::query::query;
+//     use warp::path::{end, param};
+//     use warp::{body, get, path, post};
+//     let static_routes = path("static")
+//         .and(get())
+//         .and(path::tail())
+//         .and_then(static_file);
+//     #[rustfmt::skip]
+//     let routes = warp::any()
+//         .and(static_routes)
+//         //.or(get().and(path("login")).and(end()).and(s()).and(query()).map(login::get_login))
+//         .or(post().and(path("login")).and(end()).and(s()).and(body::form()).map(login::post_login))
+//         .or(path("logout").and(end()).and(s()).map(login::logout))
+//         .or(get().and(end()).and(s()).map(all_years))
+//         .or(get().and(path("img")).and(param()).and(end()).and(s()).map(photo_details))
+//         //.or(get().and(path("img")).and(param()).and(param()).and(end()).and(s()).and_then(image::show_image))
+//         .or(get().and(path("0")).and(end()).and(s()).map(all_null_date))
+//         .or(get().and(param()).and(end()).and(s()).map(months_in_year))
+//         .or(get().and(param()).and(param()).and(end()).and(s()).map(days_in_month))
+//         .or(get().and(param()).and(param()).and(param()).and(end()).and(query()).and(s()).map(all_for_day))
+//         .or(path("person").and(person_routes(s())))
+//         .or(path("place").and(place_routes(s())))
+//         .or(path("tag").and(tag_routes(s())))
+//         .or(get().and(path("random")).and(end()).and(s()).map(random_image))
+//         .or(get().and(path("thisday")).and(end()).and(s()).map(on_this_day))
+//         .or(get().and(path("next")).and(end()).and(s()).and(query()).map(next_image))
+//         .or(get().and(path("prev")).and(end()).and(s()).and(query()).map(prev_image))
+//         .or(path("ac").and(autocomplete::routes(s())))
+//         .or(path("search").and(end()).and(get()).and(s()).and(query()).map(search))
+//         .or(path("api").and(api::routes(s())))
+//         .or(path("adm").and(admin::routes(s())));
+//     warp::serve(routes.recover(customize_error))
+//         .run(args.listen)
+//         .await;
+//     Ok(())
+// }
+
+pub async fn run(args: &Args) -> anyhow::Result<()> {
+    rocket::ignite()
+    .mount("/", routes![
+        index,
+        crate::server::image::show_image,
+        crate::server::login::get_login
+    ])
+    .mount("/static", rocket_contrib::serve::StaticFiles::from(concat!(env!("CARGO_MANIFEST_DIR"), "/res")))
+    .manage(Arc::new(GlobalContext::new(args)))
+    .attach(rocket_contrib::helmet::SpaceHelmet::default())
+    .attach(rocket_contrib::templates::Template::fairing())
+    .launch();
     Ok(())
+}
+
+#[get("/")]
+fn index() -> &'static str {
+    "hi"
 }
 
 /// Create custom error pages.

@@ -1,15 +1,24 @@
-use super::AnyhowRejectionExt;
+use super::{AnyhowRejectionExt, context::GlobalContext};
 use super::BuilderExt;
 use super::{error_response, not_found, Context};
 use crate::collection::{get_scaled_jpeg, ImageLoadFailed};
 use crate::models::Photo;
+use anyhow::Result;
 use diesel::prelude::*;
+use rocket::{State, http::Cookies};
 use warp::http::response::Builder;
 use warp::http::{header, StatusCode};
 use warp::reply::Response;
 use warp::Rejection;
 
-pub async fn show_image(
+#[get("/img/<id>/<size>")]
+pub fn show_image(globe: State<GlobalContext>, mut cookies: Cookies, id: String, size: usize) -> Option<String> {
+    let token = cookies
+        .get_private("auth_token")?;
+    Some(format!("You wanted image {} scaled to {}, with token {}", id, size, token))
+}
+
+pub async fn show_image_old(
     id: String,
     size: u32,
     context: Context,

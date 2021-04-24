@@ -1,17 +1,31 @@
-use super::{BuilderExt, Context, RenderRucte};
+use super::{BuilderExt, Context, RenderRucte, context::GlobalContext};
 use crate::templates;
 use log::info;
+use rocket::State;
+use rocket::response::content::Html;
 use serde::Deserialize;
 use warp::http::header;
 use warp::http::response::Builder;
 use warp::reply::Response;
+use std::sync::Arc;
+use anyhow::Result;
+use rocket_contrib::templates::Template;
+use maplit::hashmap;
 
-pub fn get_login(context: Context, param: NextQ) -> Response {
-    info!("Got request for login form.  Param: {:?}", param);
-    let next = sanitize_next(param.next.as_ref().map(AsRef::as_ref));
-    Builder::new()
-        .html(|o| templates::login(o, &context, next, None))
-        .unwrap()
+#[get("/login?<next>")]
+pub fn get_login(
+    globe: State<Arc<GlobalContext>>,
+    next: Option<String>
+) -> Result<Html<String>> {
+    let context = Context::new(globe.inner().clone());
+    info!("Got request for login form.  Param: {:?}", next);
+    let next = sanitize_next(next.as_ref().map(AsRef::as_ref));
+    let mut out = std::io::Cursor::new(Vec::new());
+    Template::render("login", hashmap!{
+        "next" => next
+    });
+    templates::login(&mut out, &context, next, None)?;
+    Ok(Html(String::from_utf8_lossy(out.get_ref()).into_owned()))
 }
 
 #[derive(Debug, Default, Deserialize)]

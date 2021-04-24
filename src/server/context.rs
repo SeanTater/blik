@@ -7,35 +7,10 @@ use medallion::{Header, Payload, Token};
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::Duration;
-use warp::filters::{cookie, header, BoxedFilter};
-use warp::path::{self, FullPath};
+use warp::filters::BoxedFilter;
 use warp::{self, Filter};
 
 pub type ContextFilter = BoxedFilter<(Context,)>;
-
-pub fn create_session_filter(args: &Args) -> ContextFilter {
-    let global = Arc::new(GlobalContext::new(args));
-    let g1 = global.clone();
-    warp::any()
-        .and(path::full())
-        .and(
-            cookie::cookie("EXAUTH")
-                .or(header::header("Authorization"))
-                .unify()
-                .map(move |key: String| {
-                    g1.verify_key(&key)
-                        .map_err(|e| warn!("Auth failed: {}", e))
-                        .ok()
-                })
-                .or(warp::any().map(|| None))
-                .unify(),
-        )
-        .map(move |path, user| {
-            let global = global.clone();
-            Context { global, path, user }
-        })
-        .boxed()
-}
 
 // Does _not_ derive debug, copy or clone, since it contains the jwt
 // secret and some connection pools.
@@ -48,7 +23,7 @@ pub struct GlobalContext {
 }
 
 impl GlobalContext {
-    fn new(args: &Args) -> Self {
+    pub fn new(args: &Args) -> Self {
         let pool = crate::dbopt::create_pool().expect("Sqlite pool");
         let gc = GlobalContext {
             db_pool: pool.clone(),
@@ -132,11 +107,14 @@ fn verify_token(
 /// The request context, providing database, and authorized user.
 pub struct Context {
     pub global: Arc<GlobalContext>,
-    path: FullPath,
+    path: String,
     user: Option<String>,
 }
 
 impl Context {
+    pub fn new(global: Arc<GlobalContext>) -> Context {
+        Context{ global, path: "".into(), user: None}
+    }
     pub fn db(&self) -> PooledSqlite {
         self.global
             .db_pool

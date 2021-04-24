@@ -1,9 +1,15 @@
+
+#![feature(proc_macro_hygiene, decl_macro)]
 #![allow(proc_macro_derive_resolution_fallback)]
 #![recursion_limit = "128"]
 #[macro_use]
 extern crate diesel;
 #[macro_use]
+extern crate rocket;
+#[macro_use]
 extern crate anyhow;
+#[macro_use]
+extern crate maplit;
 
 mod adm;
 mod collection;
