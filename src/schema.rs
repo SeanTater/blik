@@ -51,6 +51,7 @@ table! {
         attribution_id -> Nullable<Integer>,
         width -> Integer,
         height -> Integer,
+        thumbnail -> Binary,
     }
 }
 

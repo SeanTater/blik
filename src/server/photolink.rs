@@ -7,7 +7,7 @@ pub struct PhotoLink {
     pub href: String,
     pub id: String,
     pub size: (u32, u32),
-    pub lable: Option<String>,
+    pub label: Option<String>,
 }
 
 impl PhotoLink {
@@ -28,7 +28,7 @@ impl PhotoLink {
                 p.grade.unwrap_or(19) * if p.is_public { 5 } else { 4 }
             }
             let photo = g.iter().max_by_key(|p| imgscore(p)).unwrap();
-            let (title, lable) = {
+            let (title, label) = {
                 let from = g.last().and_then(|p| p.date);
                 let to = g.first().and_then(|p| p.date);
                 if let (Some(from), Some(to)) = (from, to) {
@@ -108,26 +108,26 @@ impl PhotoLink {
                 href: url.into(),
                 id: photo.id.clone(),
                 size: photo.get_size(SizeTag::Small),
-                lable: Some(lable),
+                label: Some(label),
             }
         }
     }
     pub fn date_title(p: &Photo) -> PhotoLink {
         PhotoLink {
             title: p.date.map(|d| d.format("%F").to_string()),
-            href: format!("/img/{}", p.id),
+            href: format!("/photo/{}/thumbnail", p.id),
             id: p.id.clone(),
             size: p.get_size(SizeTag::Small),
-            lable: p.date.map(|d| d.format("%T").to_string()),
+            label: p.date.map(|d| d.format("%T").to_string()),
         }
     }
     pub fn no_title(p: &Photo) -> PhotoLink {
         PhotoLink {
             title: None, // p.date.map(|d| d.format("%F").to_string()),
-            href: format!("/img/{}", p.id),
+            href: format!("/photo/{}/thumbnail", p.id),
             id: p.id.clone(),
             size: p.get_size(SizeTag::Small),
-            lable: p.date.map(|d| d.format("%T").to_string()),
+            label: p.date.map(|d| d.format("%T").to_string()),
         }
     }
     pub fn is_portrait(&self) -> bool {

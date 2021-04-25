@@ -13,7 +13,8 @@ CREATE TABLE photos (
   is_public BOOLEAN NOT NULL DEFAULT 0,
   attribution_id INT,
   width INT NOT NULL,
-  height INT NOT NULL
+  height INT NOT NULL,
+  thumbnail BLOB NOT NULL
 );
 
 CREATE INDEX photos_date_idx ON photos (date DESC);

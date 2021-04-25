@@ -267,7 +267,7 @@ div.group {
     &.first-line img {
 	height: calc(6em + 11vw);
     }
-    h2, .lable {
+    h2, .label {
       text-shadow: 0 0 .1em white, 0 0 .4em white;
       padding: 0 .2em;
     }
@@ -276,7 +276,7 @@ div.group {
       margin: 0;
       line-height: 1.2;
     }
-    .lable {
+    .label {
       position: absolute;
       bottom: 0;
       right: 0;
@@ -292,7 +292,7 @@ div.group {
         width: -webkit-fill-available;
         width: available;
       }
-      .lable {
+      .label {
         background: rgba(white,0.8);
       }
     }

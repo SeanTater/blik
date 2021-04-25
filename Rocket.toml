@@ -1,0 +1,2 @@
+[global.databases]
+rphotosdb = { url = "rphotos.db" }

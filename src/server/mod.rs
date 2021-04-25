@@ -1,22 +1,17 @@
 mod admin;
-mod api;
 mod autocomplete;
 pub mod context;
 mod image;
 mod login;
 mod photolink;
 mod render_ructe;
-pub mod search;
-mod splitlist;
 mod urlstring;
-mod views_by_category;
 mod views_by_date;
 
 pub use self::context::{Context, ContextFilter};
 pub use self::photolink::PhotoLink;
+pub use self::login::LoggedIn;
 use self::render_ructe::BuilderExt;
-use self::search::*;
-use self::views_by_category::*;
 use self::views_by_date::*;
 use super::DirOpt;
 use crate::models::Photo;
@@ -28,14 +23,16 @@ use context::GlobalContext;
 use diesel::prelude::*;
 use log::info;
 use serde::Deserialize;
-use std::net::SocketAddr;
+use std::{net::SocketAddr, path::PathBuf};
 use structopt::StructOpt;
 use warp::filters::path::Tail;
 use warp::http::{header, response::Builder, StatusCode};
 use warp::reply::Response;
 use warp::{self, Filter, Rejection, Reply};
 use std::sync::Arc;
-
+use rocket::response::Redirect;
+use rocket::response::Content;
+use rocket::http::ContentType;
 #[derive(StructOpt)]
 #[structopt(rename_all = "kebab-case")]
 pub struct Args {
@@ -74,17 +71,17 @@ pub struct Args {
 //         .and_then(static_file);
 //     #[rustfmt::skip]
 //     let routes = warp::any()
-//         .and(static_routes)
+//         //.and(static_routes)
 //         //.or(get().and(path("login")).and(end()).and(s()).and(query()).map(login::get_login))
-//         .or(post().and(path("login")).and(end()).and(s()).and(body::form()).map(login::post_login))
-//         .or(path("logout").and(end()).and(s()).map(login::logout))
-//         .or(get().and(end()).and(s()).map(all_years))
+//         //.or(post().and(path("login")).and(end()).and(s()).and(body::form()).map(login::post_login))
+//         //.or(path("logout").and(end()).and(s()).map(login::logout))
+//         //.or(get().and(end()).and(s()).map(all_years))
 //         .or(get().and(path("img")).and(param()).and(end()).and(s()).map(photo_details))
-//         //.or(get().and(path("img")).and(param()).and(param()).and(end()).and(s()).and_then(image::show_image))
-//         .or(get().and(path("0")).and(end()).and(s()).map(all_null_date))
-//         .or(get().and(param()).and(end()).and(s()).map(months_in_year))
-//         .or(get().and(param()).and(param()).and(end()).and(s()).map(days_in_month))
-//         .or(get().and(param()).and(param()).and(param()).and(end()).and(query()).and(s()).map(all_for_day))
+//         .or(get().and(path("img")).and(param()).and(param()).and(end()).and(s()).and_then(image::show_image))
+//         //.or(get().and(path("0")).and(end()).and(s()).map(all_null_date))
+//         //.or(get().and(param()).and(end()).and(s()).map(months_in_year))
+//         //.or(get().and(param()).and(param()).and(end()).and(s()).map(days_in_month))
+//         //.or(get().and(param()).and(param()).and(param()).and(end()).and(query()).and(s()).map(all_for_day))
 //         .or(path("person").and(person_routes(s())))
 //         .or(path("place").and(place_routes(s())))
 //         .or(path("tag").and(tag_routes(s())))
@@ -94,52 +91,39 @@ pub struct Args {
 //         .or(get().and(path("prev")).and(end()).and(s()).and(query()).map(prev_image))
 //         .or(path("ac").and(autocomplete::routes(s())))
 //         .or(path("search").and(end()).and(get()).and(s()).and(query()).map(search))
-//         .or(path("api").and(api::routes(s())))
+//         //.or(path("api").and(api::routes(s())))
 //         .or(path("adm").and(admin::routes(s())));
 //     warp::serve(routes.recover(customize_error))
 //         .run(args.listen)
 //         .await;
 //     Ok(())
 // }
+#[database("rphotosdb")]
+pub struct RPhotosDB(SqliteConnection);
 
 pub async fn run(args: &Args) -> anyhow::Result<()> {
     rocket::ignite()
     .mount("/", routes![
-        index,
-        crate::server::image::show_image,
-        crate::server::login::get_login
+        need_to_login,
+        self::login::get_login,
+        self::login::post_login,
+        self::login::logout,
+        self::views_by_date::timeline,
+        self::image::thumbnail,
+        self::image::full,
+        self::static_file,
     ])
-    .mount("/static", rocket_contrib::serve::StaticFiles::from(concat!(env!("CARGO_MANIFEST_DIR"), "/res")))
+    //.mount("/static", rocket_contrib::serve::StaticFiles::from(concat!(env!("CARGO_MANIFEST_DIR"), "/res")))
     .manage(Arc::new(GlobalContext::new(args)))
     .attach(rocket_contrib::helmet::SpaceHelmet::default())
-    .attach(rocket_contrib::templates::Template::fairing())
+    .attach(RPhotosDB::fairing())
     .launch();
     Ok(())
 }
 
-#[get("/")]
-fn index() -> &'static str {
-    "hi"
-}
-
-/// Create custom error pages.
-async fn customize_error(err: Rejection) -> Result<Response, Rejection> {
-    if err.is_not_found() {
-        log::info!("Got a 404: {:?}", err);
-        Builder::new().status(StatusCode::NOT_FOUND).html(|o| {
-            templates::error(
-                o,
-                StatusCode::NOT_FOUND,
-                "The resource you requested could not be located.",
-            )
-        })
-    } else {
-        let code = StatusCode::INTERNAL_SERVER_ERROR; // FIXME
-        log::error!("Got a {}: {:?}", code.as_u16(), err);
-        Builder::new()
-            .status(code)
-            .html(|o| templates::error(o, code, "Something went wrong."))
-    }
+#[get("/", rank = 2)]
+fn need_to_login() -> Redirect {
+    Redirect::to("/login")
 }
 
 fn not_found(context: &Context) -> Response {
@@ -177,18 +161,16 @@ fn error_response(err: StatusCode) -> Result<Response, Rejection> {
 /// Handler for static files.
 /// Create a response from the file data with a correct content type
 /// and a far expires header (or a 404 if the file does not exist).
-async fn static_file(name: Tail) -> Result<impl Reply, Rejection> {
+#[get("/static/<path..>")]
+pub fn static_file(path: PathBuf) -> Option<Content<Vec<u8>>> {
     use templates::statics::StaticFile;
-    if let Some(data) = StaticFile::get(name.as_str()) {
-        Ok(Builder::new()
-            .status(StatusCode::OK)
-            .header(header::CONTENT_TYPE, data.mime.as_ref())
-            .far_expires()
-            .body(data.content))
-    } else {
-        println!("Static file {:?} not found", name);
-        Err(warp::reject::not_found())
-    }
+    path.into_os_string()
+        .to_str()
+        .and_then(StaticFile::get)
+        .map(|data| Content(ContentType::new(
+            data.mime.type_().as_str(),
+            data.mime.subtype().as_str()
+        ), data.content.to_vec()))
 }
 
 fn random_image(context: Context) -> Response {

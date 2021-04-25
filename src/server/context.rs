@@ -16,8 +16,7 @@ pub type ContextFilter = BoxedFilter<(Context,)>;
 // secret and some connection pools.
 pub struct GlobalContext {
     db_pool: SqlitePool,
-    photosdir: Collection,
-    jwt_secret: String,
+    pub collection: Collection,
     // Note for simplicity only one new person can login at a time.
     open_token: Mutex<Option<(u64, DateTime<Utc>)>>,
 }
@@ -27,8 +26,7 @@ impl GlobalContext {
         let pool = crate::dbopt::create_pool().expect("Sqlite pool");
         let gc = GlobalContext {
             db_pool: pool.clone(),
-            photosdir: Collection::new(&args.photos.photos_dir, pool),
-            jwt_secret: args.jwt_key.clone(),
+            collection: Collection::new(&args.photos.photos_dir, pool),
             open_token: Mutex::new(None),
         };
         let code = gc.generate_login_token(15);
@@ -62,46 +60,6 @@ impl GlobalContext {
         }
         success
     }
-
-    fn verify_key(&self, jwtstr: &str) -> Result<String, String> {
-        let token = Token::<Header, ()>::parse(&jwtstr)
-            .map_err(|e| format!("Bad jwt token: {:?}", e))?;
-
-        if !verify_token(&token, self.jwt_secret.as_ref())? {
-            return Err(format!("Invalid token {:?}", token));
-        }
-        let claims = token.payload;
-        debug!("Verified token for: {:?}", claims);
-        let now = current_numeric_date();
-        if let Some(nbf) = claims.nbf {
-            if now < nbf {
-                return Err(
-                    format!("Not-yet valid token, {} < {}", now, nbf,),
-                );
-            }
-        }
-        if let Some(exp) = claims.exp {
-            if now > exp {
-                return Err(format!(
-                    "Got an expired token: {} > {}",
-                    now, exp,
-                ));
-            }
-        }
-        // the claimed sub is the username
-        claims
-            .sub
-            .ok_or_else(|| "User missing in jwt claims".to_string())
-    }
-}
-
-fn verify_token(
-    token: &Token<Header>,
-    jwt_secret: &[u8],
-) -> Result<bool, String> {
-    token
-        .verify(jwt_secret)
-        .map_err(|e| format!("Failed to verify token {:?}: {}", token, e))
 }
 
 /// The request context, providing database, and authorized user.
@@ -134,22 +92,7 @@ impl Context {
         self.path.as_str()
     }
     pub fn photos(&self) -> &Collection {
-        &self.global.photosdir
-    }
-
-    pub fn make_token(&self, user: &str) -> Option<String> {
-        let header: Header = Default::default();
-        let now = current_numeric_date();
-        let expiration_time = Duration::from_secs(14 * 24 * 60 * 60);
-        let claims = Payload::<()> {
-            iss: None, // TODO?
-            sub: Some(user.into()),
-            exp: Some(now + expiration_time.as_secs()),
-            nbf: Some(now),
-            ..Default::default()
-        };
-        let token = Token::new(header, claims);
-        token.sign(self.global.jwt_secret.as_ref()).ok()
+        &self.global.collection
     }
 }
 

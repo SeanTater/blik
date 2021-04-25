@@ -2,7 +2,7 @@ use crate::myexif::ExifData;
 use crate::{dbopt, models::Modification, models::Photo};
 use anyhow::{Context, Result};
 use diesel::{insert_into, ExpressionMethods, QueryDsl, RunQueryDsl};
-use image::imageops::FilterType;
+use image::{DynamicImage, imageops::FilterType};
 use image::{self, GenericImageView, ImageError, ImageFormat};
 use io::Write;
 use log::{debug, info, warn};
@@ -62,6 +62,11 @@ impl Collection {
         let width = exif.width.ok_or(anyhow!("Missing width"))?;
         let height = exif.height.ok_or(anyhow!("Missing height"))?;
         let id = format!("{:x}", sha2::Sha256::digest(&image_bytes));
+        let mut thumbnail = std::io::Cursor::new(vec![]);
+        image
+            ::load_from_memory(&image_bytes)?
+            .thumbnail(256, 256)
+            .write_to(&mut thumbnail, image::ImageOutputFormat::Jpeg(80))?;
         let photo = match Photo::create_or_set_basics(
             db,
             &id,
@@ -72,6 +77,7 @@ impl Collection {
             height as i32,
             exif.date(),
             exif.rotation()?,
+            &thumbnail.into_inner()
         )? {
             Modification::Created(photo) => {
                 info!("Created #{}, {}", photo.id, photo.path);
