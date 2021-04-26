@@ -32,12 +32,6 @@ body {
     max-height: 100vh;
 }
 
-main-content {
-    background: var(--white-sheet);
-    margin: 5vh 0;
-    padding: 1em;
-}
-
 h1 {
     small.n_hits {
         font-weight: normal;
@@ -222,6 +216,9 @@ form.search {
 }
 
 main {
+    background: var(--white-sheet);
+    margin: 5vh 0;
+    padding: 1em;
     flex-grow: 1;
     margin-bottom: 1em;
     form.search {

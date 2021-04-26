@@ -10,8 +10,6 @@ extern crate rocket;
 extern crate rocket_contrib;
 #[macro_use]
 extern crate anyhow;
-#[macro_use]
-extern crate maplit;
 
 mod adm;
 mod collection;

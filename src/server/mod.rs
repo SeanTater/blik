@@ -59,44 +59,16 @@ pub struct Args {
 }
 
 // pub async fn run_old(args: &Args) -> Result<()> {
-//     if let Some(pidfile) = &args.pidfile {
-//         handle_pid_file(&pidfile, args.replace).unwrap()
-//     }
-//     use warp::filters::query::query;
-//     use warp::path::{end, param};
-//     use warp::{body, get, path, post};
-//     let static_routes = path("static")
-//         .and(get())
-//         .and(path::tail())
-//         .and_then(static_file);
 //     #[rustfmt::skip]
 //     let routes = warp::any()
-//         //.and(static_routes)
-//         //.or(get().and(path("login")).and(end()).and(s()).and(query()).map(login::get_login))
-//         //.or(post().and(path("login")).and(end()).and(s()).and(body::form()).map(login::post_login))
-//         //.or(path("logout").and(end()).and(s()).map(login::logout))
-//         //.or(get().and(end()).and(s()).map(all_years))
 //         .or(get().and(path("img")).and(param()).and(end()).and(s()).map(photo_details))
-//         .or(get().and(path("img")).and(param()).and(param()).and(end()).and(s()).and_then(image::show_image))
-//         //.or(get().and(path("0")).and(end()).and(s()).map(all_null_date))
-//         //.or(get().and(param()).and(end()).and(s()).map(months_in_year))
-//         //.or(get().and(param()).and(param()).and(end()).and(s()).map(days_in_month))
-//         //.or(get().and(param()).and(param()).and(param()).and(end()).and(query()).and(s()).map(all_for_day))
-//         .or(path("person").and(person_routes(s())))
-//         .or(path("place").and(place_routes(s())))
-//         .or(path("tag").and(tag_routes(s())))
 //         .or(get().and(path("random")).and(end()).and(s()).map(random_image))
 //         .or(get().and(path("thisday")).and(end()).and(s()).map(on_this_day))
 //         .or(get().and(path("next")).and(end()).and(s()).and(query()).map(next_image))
 //         .or(get().and(path("prev")).and(end()).and(s()).and(query()).map(prev_image))
 //         .or(path("ac").and(autocomplete::routes(s())))
 //         .or(path("search").and(end()).and(get()).and(s()).and(query()).map(search))
-//         //.or(path("api").and(api::routes(s())))
 //         .or(path("adm").and(admin::routes(s())));
-//     warp::serve(routes.recover(customize_error))
-//         .run(args.listen)
-//         .await;
-//     Ok(())
 // }
 #[database("rphotosdb")]
 pub struct RPhotosDB(SqliteConnection);
@@ -108,6 +80,7 @@ pub async fn run(args: &Args) -> anyhow::Result<()> {
         self::login::get_login,
         self::login::post_login,
         self::login::logout,
+        self::login::invite,
         self::views_by_date::timeline,
         self::image::thumbnail,
         self::image::full,

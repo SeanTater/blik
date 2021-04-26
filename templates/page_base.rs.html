@@ -3,8 +3,6 @@
 
 @(context: &Context, title: &str, lpath: &[Link], meta: Content, content: Content)
 @:base(context, title, lpath, meta, {
-    <main>
-      <h1>@title</h1>
-      @:content()
-    </main>
+    <h1>@title</h1>
+    @:content()
 })

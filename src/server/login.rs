@@ -1,4 +1,4 @@
-use super::{BuilderExt, Context, RenderRucte, context::GlobalContext};
+use super::{Context, RenderRucte, context::GlobalContext};
 use crate::templates;
 use rocket::{Request, State, http::{Cookie, Cookies}, request::{Form, FromRequest, Outcome}, response::Redirect};
 use rocket::response::content::Html;
@@ -21,11 +21,11 @@ impl<'a, 'r> FromRequest<'a, 'r> for LoggedIn {
 #[get("/login")]
 pub fn get_login(
     globe: State<Arc<GlobalContext>>
-) -> Result<Html<Vec<u8>>> {
+) -> Option<Html<Vec<u8>>> {
     let context = Context::new(globe.inner().clone());
     let mut out = std::io::Cursor::new(vec![]);
-    templates::login(&mut out, &context, None)?;
-    Ok(Html(out.into_inner()))
+    templates::login(&mut out, &context, None).ok()?;
+    Some(Html(out.into_inner()))
 }
 
 #[derive(FromForm)]
@@ -49,4 +49,15 @@ pub fn post_login(
 pub fn logout(_user: LoggedIn, mut cookies: Cookies) -> Redirect {
     cookies.remove_private(Cookie::named("AUTH"));
     Redirect::to("/login")
+}
+
+#[get("/invite")]
+pub fn invite(
+    _user: LoggedIn,
+    globe: State<Arc<GlobalContext>>,
+) -> Option<Html<Vec<u8>>> {
+    let context = Context::new(globe.inner().clone());
+    let mut out = std::io::Cursor::new(vec![]);
+    templates::invite(&mut out, &context, &globe.generate_login_token(15).to_string()).ok()?;
+    Some(Html(out.into_inner()))
 }
