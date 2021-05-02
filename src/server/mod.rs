@@ -1,7 +1,6 @@
 mod image;
 mod login;
 mod photolink;
-mod render_ructe;
 mod urlstring;
 mod timeline;
 mod context;
