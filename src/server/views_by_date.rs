@@ -1,26 +1,29 @@
 use std::sync::Arc;
 
-use super::{LoggedIn, context::GlobalContext};
-use super::{not_found, redirect_to_img, Context, ImgRange, Link, PhotoLink, RPhotosDB};
+use super::{context::GlobalContext, LoggedIn};
+use super::{
+    not_found, redirect_to_img, Context, ImgRange, Link, PhotoLink, RPhotosDB,
+};
 use crate::models::{Photo, SizeTag};
 use crate::templates::{self, RenderRucte};
+use anyhow::Result;
 use chrono::naive::NaiveDateTime;
 use chrono::{Datelike, Local};
 use diesel::dsl::sql;
 use diesel::prelude::*;
 use diesel::sql_types::{BigInt, Integer};
 use log::warn;
-use rocket::{State, response::content::Html};
+use rocket::{State, request::FlashMessage, response::content::Html};
 use serde::Deserialize;
 use warp::http::response::Builder;
 use warp::reply::Response;
-use anyhow::Result;
 
 #[get("/")]
 pub fn timeline(
     _user: LoggedIn,
     globe: State<Arc<GlobalContext>>,
-    db: RPhotosDB
+    db: RPhotosDB,
+    flash: Option<FlashMessage>
 ) -> Result<Html<Vec<u8>>> {
     use crate::schema::photos::dsl::photos;
     let db = db.0;
@@ -29,23 +32,27 @@ pub fn timeline(
         .limit(100)
         .load(&db)?
         .iter()
-        .map(|photo: &Photo| {
-            PhotoLink {
-                title: Some(format!("{:04}-{:02}-{:02}", photo.year, photo.month, photo.day)),
-                href: format!("/photo/{}/details", photo.id),
-                label: Some(String::new()),
-                id: photo.id.clone(),
-                size: photo.get_size(SizeTag::Small),
-            }
+        .map(|photo: &Photo| PhotoLink {
+            title: Some(format!(
+                "{:04}-{:02}-{:02}",
+                photo.year, photo.month, photo.day
+            )),
+            href: format!("/photo/{}/details", photo.id),
+            label: Some(String::new()),
+            id: photo.id.clone(),
+            size: photo.get_size(SizeTag::Small),
         })
         .collect::<Vec<_>>();
     let context = Context::new(globe.inner().clone());
     let mut out = std::io::Cursor::new(vec![]);
-    templates::index(&mut out, &context, "All photos", &[], &photo_list, &[])?;
+    templates::index(&mut out, &context, "All photos", &[], &photo_list, &[], flash)?;
     Ok(Html(out.into_inner()))
 }
 
-pub fn on_this_day(context: Context) -> Response {
+pub fn on_this_day(
+    context: Context,
+    flash: Option<FlashMessage>
+) -> Response {
     use crate::schema::photos::dsl::{date, day, grade, month, year};
     use crate::schema::positions::dsl::{
         latitude, longitude, photo_id, positions,
@@ -113,6 +120,7 @@ pub fn on_this_day(context: Context) -> Response {
                     })
                     .collect::<Vec<_>>(),
                 &pos,
+                flash
             )
         })
         .unwrap()

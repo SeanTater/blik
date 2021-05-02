@@ -71,7 +71,11 @@ pub struct Context {
 
 impl Context {
     pub fn new(global: Arc<GlobalContext>) -> Context {
-        Context{ global, path: "".into(), user: None}
+        Context {
+            global,
+            path: "".into(),
+            user: None,
+        }
     }
     pub fn db(&self) -> PooledSqlite {
         self.global

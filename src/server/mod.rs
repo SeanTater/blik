@@ -9,8 +9,8 @@ mod urlstring;
 mod views_by_date;
 
 pub use self::context::{Context, ContextFilter};
-pub use self::photolink::PhotoLink;
 pub use self::login::LoggedIn;
+pub use self::photolink::PhotoLink;
 use self::render_ructe::BuilderExt;
 use self::views_by_date::*;
 use super::DirOpt;
@@ -22,17 +22,17 @@ use chrono::Datelike;
 use context::GlobalContext;
 use diesel::prelude::*;
 use log::info;
+use rocket::http::ContentType;
+use rocket::response::Content;
+use rocket::response::Redirect;
 use serde::Deserialize;
+use std::sync::Arc;
 use std::{net::SocketAddr, path::PathBuf};
 use structopt::StructOpt;
 use warp::filters::path::Tail;
 use warp::http::{header, response::Builder, StatusCode};
 use warp::reply::Response;
 use warp::{self, Filter, Rejection, Reply};
-use std::sync::Arc;
-use rocket::response::Redirect;
-use rocket::response::Content;
-use rocket::http::ContentType;
 #[derive(StructOpt)]
 #[structopt(rename_all = "kebab-case")]
 pub struct Args {
@@ -75,22 +75,26 @@ pub struct RPhotosDB(SqliteConnection);
 
 pub async fn run(args: &Args) -> anyhow::Result<()> {
     rocket::ignite()
-    .mount("/", routes![
-        need_to_login,
-        self::login::get_login,
-        self::login::post_login,
-        self::login::logout,
-        self::login::invite,
-        self::views_by_date::timeline,
-        self::image::thumbnail,
-        self::image::full,
-        self::static_file,
-    ])
-    //.mount("/static", rocket_contrib::serve::StaticFiles::from(concat!(env!("CARGO_MANIFEST_DIR"), "/res")))
-    .manage(Arc::new(GlobalContext::new(args)))
-    .attach(rocket_contrib::helmet::SpaceHelmet::default())
-    .attach(RPhotosDB::fairing())
-    .launch();
+        .mount(
+            "/",
+            routes![
+                need_to_login,
+                self::login::get_login,
+                self::login::post_login,
+                self::login::logout,
+                self::login::invite,
+                self::views_by_date::timeline,
+                self::image::thumbnail,
+                self::image::full,
+                self::image::upload,
+                self::static_file,
+            ],
+        )
+        //.mount("/static", rocket_contrib::serve::StaticFiles::from(concat!(env!("CARGO_MANIFEST_DIR"), "/res")))
+        .manage(Arc::new(GlobalContext::new(args)))
+        .attach(rocket_contrib::helmet::SpaceHelmet::default())
+        .attach(RPhotosDB::fairing())
+        .launch();
     Ok(())
 }
 
@@ -140,10 +144,15 @@ pub fn static_file(path: PathBuf) -> Option<Content<Vec<u8>>> {
     path.into_os_string()
         .to_str()
         .and_then(StaticFile::get)
-        .map(|data| Content(ContentType::new(
-            data.mime.type_().as_str(),
-            data.mime.subtype().as_str()
-        ), data.content.to_vec()))
+        .map(|data| {
+            Content(
+                ContentType::new(
+                    data.mime.type_().as_str(),
+                    data.mime.subtype().as_str(),
+                ),
+                data.content.to_vec(),
+            )
+        })
 }
 
 fn random_image(context: Context) -> Response {

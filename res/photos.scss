@@ -48,7 +48,6 @@ p + p {
 }
 
 
-
 header, footer {
     a {
         text-decoration: none;
@@ -231,10 +230,12 @@ header, footer, main {
     align-items: center;
 }
 
-.item {
-    box-shadow: 0 .2em 1em -.2em #000;
+.card {
+    box-shadow: 1 1px 4px 0 gray;
     background: #ccc;
     border: solid 1px white;
+    margin: 0.25em;
+    padding: 0.75em;
 }
 
 div.group {
@@ -319,6 +320,7 @@ main.details {
         }
     }
 }
+
 
 @media screen and (min-width: 50em) {
     main.details {
@@ -517,4 +519,17 @@ div.completions {
 .leaflet-popup-content img {
     max-width: 11em;
     max-height: 11em;
+}
+
+.flash-message {
+    white-space: pre;
+}
+.flash-success {
+    background: #cfc;
+}
+.flash-warning {
+    background: #ffb;
+}
+.flash-failure {
+    background: #fdd;
 }

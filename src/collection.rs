@@ -2,8 +2,8 @@ use crate::myexif::ExifData;
 use crate::{dbopt, models::Modification, models::Photo};
 use anyhow::{Context, Result};
 use diesel::{insert_into, ExpressionMethods, QueryDsl, RunQueryDsl};
-use image::{DynamicImage, imageops::FilterType};
 use image::{self, GenericImageView, ImageError, ImageFormat};
+use image::{imageops::FilterType, DynamicImage};
 use io::Write;
 use log::{debug, info, warn};
 use sha2::Digest;
@@ -33,10 +33,7 @@ impl Collection {
         self.basedir.join(Path::new(path)).is_file()
     }
 
-    pub fn save_photo(
-        &self,
-        contents: &[u8],
-    ) -> Result<(String, PathBuf)> {
+    pub fn save_photo(&self, contents: &[u8]) -> Result<(String, PathBuf)> {
         let ext = *image::guess_format(contents)?
             .extensions_str()
             .first()
@@ -63,8 +60,7 @@ impl Collection {
         let height = exif.height.ok_or(anyhow!("Missing height"))?;
         let id = format!("{:x}", sha2::Sha256::digest(&image_bytes));
         let mut thumbnail = std::io::Cursor::new(vec![]);
-        image
-            ::load_from_memory(&image_bytes)?
+        image::load_from_memory(&image_bytes)?
             .thumbnail(256, 256)
             .write_to(&mut thumbnail, image::ImageOutputFormat::Jpeg(80))?;
         let photo = match Photo::create_or_set_basics(
@@ -77,7 +73,7 @@ impl Collection {
             height as i32,
             exif.date(),
             exif.rotation()?,
-            &thumbnail.into_inner()
+            &thumbnail.into_inner(),
         )? {
             Modification::Created(photo) => {
                 info!("Created #{}, {}", photo.id, photo.path);

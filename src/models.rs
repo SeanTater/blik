@@ -31,7 +31,7 @@ pub struct Photo {
     pub attribution_id: Option<i32>,
     pub width: i32,
     pub height: i32,
-    pub thumbnail: Vec<u8>
+    pub thumbnail: Vec<u8>,
 }
 
 #[derive(Debug)]
@@ -107,7 +107,7 @@ impl Photo {
         newheight: i32,
         exifdate: Option<NaiveDateTime>,
         exifrotation: i16,
-        thumbnail: &[u8]
+        thumbnail: &[u8],
     ) -> Result<Modification<Photo>, Error> {
         if let Some(result) =
             Self::update_by_path(db, file_path, newwidth, newheight, exifdate)?

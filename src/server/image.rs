@@ -1,23 +1,32 @@
 use std::sync::Arc;
 
-use super::{LoggedIn, RPhotosDB, context::GlobalContext};
+use super::Context;
+use super::{context::GlobalContext, LoggedIn, RPhotosDB};
 use crate::models::Photo;
 use anyhow::Result;
 use diesel::prelude::*;
-use rocket::{State, response::content::Content, http::ContentType};
+use rocket::response::{
+    content::{Content, Html},
+    Flash, Redirect,
+};
+use rocket::{http::ContentType, Data, State};
+use std::io::Read;
 
 #[get("/photo/<id>/thumbnail")]
 pub fn thumbnail(
     _user: LoggedIn,
     db: RPhotosDB,
-    id: String
+    id: String,
 ) -> Result<Content<Vec<u8>>> {
     use crate::schema::photos::dsl::photos;
     let db = db.0;
     let pho = photos.find(&id).first::<Photo>(&db)?;
     //let pho_data = std::fs::read(&pho.path)?;
 
-    Ok(Content(rocket::http::ContentType::JPEG, pho.thumbnail.clone()))
+    Ok(Content(
+        rocket::http::ContentType::JPEG,
+        pho.thumbnail.clone(),
+    ))
 }
 
 #[get("/photo/<id>")]
@@ -25,19 +34,69 @@ pub fn full(
     _user: LoggedIn,
     db: RPhotosDB,
     globe: State<Arc<GlobalContext>>,
-    id: String
+    id: String,
 ) -> Option<Content<Vec<u8>>> {
     use crate::schema::photos::dsl::photos;
     let db = db.0;
     let pho = photos.find(&id).first::<Photo>(&db).ok()?;
     let pho_path = globe.collection.get_raw_path(&pho);
-    let mime = mime_guess::from_path(&pho_path)
-        .first_or_octet_stream();
+    let mime = mime_guess::from_path(&pho_path).first_or_octet_stream();
     Some(Content(
-        ContentType::new(
-            mime.type_().to_string(),
-            mime.subtype().to_string()
-        ),
-        std::fs::read(pho_path).ok()?
+        ContentType::new(mime.type_().to_string(), mime.subtype().to_string()),
+        std::fs::read(pho_path).ok()?,
     ))
+}
+
+#[post("/photo", data = "<image>")]
+pub fn upload(
+    _user: LoggedIn,
+    content_type: &ContentType,
+    globe: State<Arc<GlobalContext>>,
+    image: Data,
+) -> Option<Flash<Redirect>> {
+    let boundary = content_type.params().find(|(x, _)| *x == "boundary")?.1;
+    let reader = image.open();
+    let mut parts = multipart::server::Multipart::with_body(reader, boundary);
+    let mut messages = vec![];
+    let mut success = true;
+    while let Some(part) = parts.read_entry().ok()? {
+        // This limits each image to 100MB but no limit for total images
+        // This is intended for one user so as long as they are logged in,
+        // So this should mostly reduce careless mistakes
+        // Even a 100 MB limit may not make sense if we support video later.
+
+        let mut image_buf = vec![];
+
+        part.data.take(100 << 20).read_to_end(&mut image_buf).ok()?;
+        // TODO: Complain if the image is too long
+        if image_buf.len() == 100 << 20 {
+            success = false;
+            messages.push(format!(
+                "Image {} is too large: it needs to be under 100 MB per image",
+                part.headers.filename.unwrap_or("untitled".to_string())
+            ));
+        } else {
+            println!("Read image {} bytes long", image_buf.len());
+            messages.push(match globe.collection.save_photo(&image_buf) {
+                Ok((id, path)) => {
+                    format!("Saved image with ID {} to {}", id, path.display())
+                }
+                Err(err) => {
+                    success = false;
+                    format!(
+                        "Failed to upload {}: {}",
+                        part.headers
+                            .filename
+                            .unwrap_or("untitled".to_string()),
+                        err
+                    )
+                }
+            });
+        }
+    }
+    Some(if success {
+        Flash::success(Redirect::to("/"), messages.join("\n"))
+    } else {
+        Flash::warning(Redirect::to("/"), messages.join("\n"))
+    })
 }

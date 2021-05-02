@@ -1,4 +1,3 @@
-
 #![feature(proc_macro_hygiene, decl_macro)]
 #![allow(proc_macro_derive_resolution_fallback)]
 #![recursion_limit = "128"]
@@ -21,7 +20,7 @@ mod schema;
 mod server;
 
 use crate::adm::stats::show_stats;
-use crate::adm::{findphotos, makepublic, storestatics};
+use crate::adm::{findphotos, makepublic};
 use anyhow::Result;
 use dotenv::dotenv;
 use std::path::PathBuf;
@@ -40,11 +39,6 @@ enum RPhotos {
     Findphotos(findphotos::Findphotos),
     /// Show some statistics from the database
     Stats,
-    /// Store statics as files for a web server
-    Storestatics {
-        /// Directory to store the files in
-        dir: String,
-    },
     /// Run the rphotos web server.
     Runserver(server::Args),
 }
@@ -75,7 +69,6 @@ async fn run(args: &RPhotos) -> Result<()> {
         RPhotos::Findphotos(cmd) => cmd.run(),
         RPhotos::Makepublic(cmd) => cmd.run(),
         RPhotos::Stats => show_stats(&dbopt::connect()?),
-        RPhotos::Storestatics { dir } => storestatics::to_dir(dir),
         RPhotos::Runserver(ra) => server::run(ra).await,
     }
 }

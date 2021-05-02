@@ -76,9 +76,7 @@ async fn upload_image(context: Context, form: FormData) -> WarpResult {
                 );
                 context
                     .photos()
-                    .save_photo(
-                        &buf.copy_to_bytes(buf.remaining()),
-                    )
+                    .save_photo(&buf.copy_to_bytes(buf.remaining()))
                     .map_err(|_| warp::reject::reject())?;
             }
         }

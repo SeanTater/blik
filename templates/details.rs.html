@@ -11,7 +11,7 @@
 }, {
   <main class="details" data-imgid="@photo.id"@if let Some(g) = photo.grade { data-grade="@g"}@if let Some(ref p) = *position { data-position="[@p.x, @p.y]"}>
     <h1>Photo details</h1>
-    <img class="item" src="/img/@photo.id-m.jpg" width="@photo.get_size(SizeTag::Medium).0" height="@photo.get_size(SizeTag::Medium).1">
+    <img class="card item" src="/img/@photo.id-m.jpg" width="@photo.get_size(SizeTag::Medium).0" height="@photo.get_size(SizeTag::Medium).1">
     <div class="meta">
     @if context.is_authorized() {
     <p><a href="/img/@photo.id-l.jpg">@photo.path</a></p>

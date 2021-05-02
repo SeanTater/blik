@@ -1,14 +1,18 @@
 @use super::{data_positions, page_base, photo_link};
 @use crate::models::Coord;
 @use crate::server::{Context, Link, PhotoLink};
+@use rocket::request::FlashMessage;
 
-@(context: &Context, title: &str, lpath: &[Link], photos: &[PhotoLink], coords: &[(Coord, String)])
+@(context: &Context, title: &str, lpath: &[Link], photos: &[PhotoLink], coords: &[(Coord, String)], flash: Option<FlashMessage>)
 
 @:page_base(context, title, lpath, {
   <meta property='og:title' content='@title'>
-  @for img in photos {
-  <meta property='og:image' content='/img/@img.id-m.jpg' />}
-}, {
+    @for img in photos {
+    <meta property='og:image' content='/img/@img.id-m.jpg' />}
+  }, {
+  @for message in flash {
+    <div class="card flash-message flash-@message.name()">@message.msg()</div>
+  }
   <div class="group"@:data_positions(coords)>
     @for p in photos {@:photo_link(p)}
   </div>
