@@ -1,12 +1,11 @@
 use std::sync::Arc;
 
-use super::Context;
 use super::{context::GlobalContext, LoggedIn, RPhotosDB};
 use crate::models::Photo;
 use anyhow::Result;
 use diesel::prelude::*;
 use rocket::response::{
-    content::{Content, Html},
+    content::Content,
     Flash, Redirect,
 };
 use rocket::{http::ContentType, Data, State};

@@ -1,6 +1,5 @@
-use super::{context::GlobalContext, Context, RenderRucte};
+use super::context::GlobalContext;
 use crate::templates;
-use anyhow::Result;
 use rocket::response::content::Html;
 use rocket::{
     http::{Cookie, Cookies},
@@ -24,10 +23,9 @@ impl<'a, 'r> FromRequest<'a, 'r> for LoggedIn {
 
 /// An HTML login page
 #[get("/login")]
-pub fn get_login(globe: State<Arc<GlobalContext>>) -> Option<Html<Vec<u8>>> {
-    let context = Context::new(globe.inner().clone());
+pub fn get_login() -> Option<Html<Vec<u8>>> {
     let mut out = std::io::Cursor::new(vec![]);
-    templates::login(&mut out, &context, None).ok()?;
+    templates::login(&mut out, None).ok()?;
     Some(Html(out.into_inner()))
 }
 
@@ -61,11 +59,9 @@ pub fn invite(
     _user: LoggedIn,
     globe: State<Arc<GlobalContext>>,
 ) -> Option<Html<Vec<u8>>> {
-    let context = Context::new(globe.inner().clone());
     let mut out = std::io::Cursor::new(vec![]);
     templates::invite(
         &mut out,
-        &context,
         &globe.generate_login_token(15).to_string(),
     )
     .ok()?;

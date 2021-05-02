@@ -1,9 +1,8 @@
 @use super::page_base;
-@use crate::server::Context;
 
-@(context: &Context, code: &str)
+@(code: &str)
 
-@:page_base(context, "invite", {}, {
+@:page_base("invite", {}, {
     <p>
       You can use the code <code>@code</code> to login for the next 15 minutes.
       Please note that only one invitation is valid at any given time, for safety,

@@ -1,8 +1,7 @@
-@use super::statics::{photos_css, admin_js, ux_js};
+@use super::statics::photos_css;
 @use super::head;
-@use crate::server::Context;
 
-@(context: &Context, title: &str, meta: Content, content: Content)
+@(title: &str, meta: Content, content: Content)
 
 <!doctype html>
 <html>
@@ -14,7 +13,7 @@
     @:meta()
   </head>
   <body>
-    @:head(context)
+    @:head()
     
     <main>
       @:content()

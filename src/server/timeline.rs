@@ -1,25 +1,16 @@
-use std::sync::Arc;
-
-use super::{context::GlobalContext, LoggedIn};
-use super::{Context, PhotoLink, RPhotosDB};
+use super::LoggedIn;
+use super::{PhotoLink, RPhotosDB};
 use crate::models::{Photo, SizeTag};
-use crate::templates::{self, RenderRucte};
+use crate::templates;
 use anyhow::Result;
-use chrono::naive::NaiveDateTime;
-use chrono::{Datelike, Local};
 use diesel::dsl::sql;
 use diesel::prelude::*;
-use diesel::sql_types::{BigInt, Integer};
-use log::warn;
-use rocket::{request::FlashMessage, response::content::Html, State};
-use serde::Deserialize;
-use warp::http::response::Builder;
-use warp::reply::Response;
+use diesel::sql_types::Integer;
+use rocket::{request::FlashMessage, response::content::Html};
 
 #[get("/")]
 pub fn timeline(
     _user: LoggedIn,
-    globe: State<Arc<GlobalContext>>,
     db: RPhotosDB,
     flash: Option<FlashMessage>,
 ) -> Result<Html<Vec<u8>>> {
@@ -41,11 +32,9 @@ pub fn timeline(
             size: photo.get_size(SizeTag::Small),
         })
         .collect::<Vec<_>>();
-    let context = Context::new(globe.inner().clone());
     let mut out = std::io::Cursor::new(vec![]);
     templates::index(
         &mut out,
-        &context,
         "All photos",
         &photo_list,
         &[],

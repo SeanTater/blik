@@ -1,5 +1,5 @@
 use anyhow::Result;
-use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
+use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::sqlite::SqliteConnection;
 use diesel::{Connection, ConnectionError};
 use log::debug;
@@ -9,7 +9,6 @@ use std::{
 };
 
 pub type SqlitePool = Arc<Pool<ConnectionManager<SqliteConnection>>>;
-pub type PooledSqlite = PooledConnection<ConnectionManager<SqliteConnection>>;
 
 pub fn connect() -> Result<SqliteConnection, ConnectionError> {
     let time = Instant::now();

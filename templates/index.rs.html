@@ -1,11 +1,11 @@
 @use super::{data_positions, page_base};
 @use crate::models::Coord;
-@use crate::server::{Context, PhotoLink};
+@use crate::server::PhotoLink;
 @use rocket::request::FlashMessage;
 
-@(context: &Context, title: &str, photos: &[PhotoLink], coords: &[(Coord, String)], flash: Option<FlashMessage>)
+@(title: &str, photos: &[PhotoLink], coords: &[(Coord, String)], flash: Option<FlashMessage>)
 
-@:page_base(context, title, {
+@:page_base(title, {
   <meta property='og:title' content='@title'>
     @for img in photos {
     <meta property='og:image' content='/img/@img.id-m.jpg' />}

@@ -15,7 +15,6 @@ mod collection;
 mod dbopt;
 mod models;
 mod myexif;
-mod pidfiles;
 mod schema;
 mod server;
 

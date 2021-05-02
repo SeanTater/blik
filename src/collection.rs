@@ -2,15 +2,13 @@ use crate::myexif::ExifData;
 use crate::{dbopt, models::Modification, models::Photo};
 use anyhow::{Context, Result};
 use diesel::{insert_into, ExpressionMethods, QueryDsl, RunQueryDsl};
-use image::{self, GenericImageView, ImageError, ImageFormat};
-use image::{imageops::FilterType, DynamicImage};
+use image::{self, GenericImageView, ImageError};
 use io::Write;
 use log::{debug, info, warn};
 use sha2::Digest;
 use std::path::{Path, PathBuf};
-use std::{ffi::OsStr, fs::File, io::BufReader};
 use std::{fs, io};
-use tokio::task::{spawn_blocking, JoinError};
+use tokio::task::JoinError;
 
 pub struct Collection {
     basedir: PathBuf,
@@ -27,10 +25,6 @@ impl Collection {
 
     pub fn get_raw_path(&self, photo: &Photo) -> PathBuf {
         self.basedir.join(&photo.path)
-    }
-
-    pub fn has_file<S: AsRef<OsStr> + ?Sized>(&self, path: &S) -> bool {
-        self.basedir.join(Path::new(path)).is_file()
     }
 
     pub fn save_photo(&self, contents: &[u8]) -> Result<(String, PathBuf)> {
@@ -215,57 +209,5 @@ impl From<image::ImageError> for ImageLoadFailed {
 impl From<JoinError> for ImageLoadFailed {
     fn from(e: JoinError) -> ImageLoadFailed {
         ImageLoadFailed::Join(e)
-    }
-}
-
-pub async fn get_scaled_jpeg(
-    path: PathBuf,
-    rotation: i16,
-    size: u32,
-) -> Result<Vec<u8>, ImageLoadFailed> {
-    spawn_blocking(move || {
-        info!("Should open {:?}", path);
-
-        let img = if is_jpeg(&path) {
-            let file = BufReader::new(File::open(path)?);
-            let mut decoder = image::jpeg::JpegDecoder::new(file)?;
-            decoder.scale(size as u16, size as u16)?;
-            image::DynamicImage::from_decoder(decoder)?
-        } else {
-            image::open(path)?
-        };
-
-        let img = if 3 * size <= img.width() || 3 * size <= img.height() {
-            info!("T-nail from {}x{} to {}", img.width(), img.height(), size);
-            img.thumbnail(size, size)
-        } else if size < img.width() || size < img.height() {
-            info!("Scaling from {}x{} to {}", img.width(), img.height(), size);
-            img.resize(size, size, FilterType::CatmullRom)
-        } else {
-            img
-        };
-        let img = match rotation {
-            _x @ 0..=44 | _x @ 315..=360 => img,
-            _x @ 45..=134 => img.rotate90(),
-            _x @ 135..=224 => img.rotate180(),
-            _x @ 225..=314 => img.rotate270(),
-            x => {
-                warn!("Should rotate photo {} deg, which is unsupported", x);
-                img
-            }
-        };
-        let mut buf = Vec::new();
-        img.write_to(&mut buf, ImageFormat::Jpeg)?;
-        Ok(buf)
-    })
-    .await?
-}
-
-fn is_jpeg(path: &Path) -> bool {
-    if let Some(suffix) = path.extension().and_then(|s| s.to_str()) {
-        suffix.eq_ignore_ascii_case("jpg")
-            || suffix.eq_ignore_ascii_case("jpeg")
-    } else {
-        false
     }
 }

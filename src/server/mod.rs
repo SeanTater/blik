@@ -1,53 +1,29 @@
-pub mod context;
 mod image;
 mod login;
 mod photolink;
 mod render_ructe;
 mod urlstring;
-mod views_by_date;
+mod timeline;
+mod context;
 
-pub use self::context::{Context, ContextFilter};
 pub use self::login::LoggedIn;
 pub use self::photolink::PhotoLink;
-use self::render_ructe::BuilderExt;
-use self::views_by_date::*;
+use self::context::GlobalContext;
 use super::DirOpt;
-use crate::models::Photo;
-use crate::templates::{self, Html, RenderRucte};
-use anyhow::Result;
-use chrono::Datelike;
-use context::GlobalContext;
+use crate::templates;
 use diesel::prelude::*;
-use log::info;
 use rocket::http::ContentType;
 use rocket::response::Content;
 use rocket::response::Redirect;
-use serde::Deserialize;
 use std::path::PathBuf;
 use std::sync::Arc;
 use structopt::StructOpt;
-use warp::http::{response::Builder, StatusCode};
-use warp::reply::Response;
-use warp::{self, Rejection};
 #[derive(StructOpt)]
 #[structopt(rename_all = "kebab-case")]
 pub struct Args {
     #[structopt(flatten)]
     photos: DirOpt,
 }
-
-// pub async fn run_old(args: &Args) -> Result<()> {
-//     #[rustfmt::skip]
-//     let routes = warp::any()
-//         .or(get().and(path("img")).and(param()).and(end()).and(s()).map(photo_details))
-//         .or(get().and(path("random")).and(end()).and(s()).map(random_image))
-//         .or(get().and(path("thisday")).and(end()).and(s()).map(on_this_day))
-//         .or(get().and(path("next")).and(end()).and(s()).and(query()).map(next_image))
-//         .or(get().and(path("prev")).and(end()).and(s()).and(query()).map(prev_image))
-//         .or(path("ac").and(autocomplete::routes(s())))
-//         .or(path("search").and(end()).and(get()).and(s()).and(query()).map(search))
-//         .or(path("adm").and(admin::routes(s())));
-// }
 #[database("rphotosdb")]
 pub struct RPhotosDB(SqliteConnection);
 
@@ -61,7 +37,7 @@ pub async fn run(args: &Args) -> anyhow::Result<()> {
                 self::login::post_login,
                 self::login::logout,
                 self::login::invite,
-                self::views_by_date::timeline,
+                self::timeline::timeline,
                 self::image::thumbnail,
                 self::image::full,
                 self::image::upload,
@@ -140,8 +116,3 @@ pub fn static_file(path: PathBuf) -> Option<Content<Vec<u8>>> {
 //     }
 //     not_found(&context)
 // }
-#[derive(Debug, Default, Deserialize)]
-pub struct ImgRange {
-    pub from: Option<String>,
-    pub to: Option<String>,
-}
