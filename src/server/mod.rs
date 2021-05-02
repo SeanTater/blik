@@ -62,18 +62,16 @@ fn need_to_login() -> Redirect {
 #[get("/static/<path..>")]
 pub fn static_file(path: PathBuf) -> Option<Content<Vec<u8>>> {
     use templates::statics::StaticFile;
-    path.into_os_string()
-        .to_str()
-        .and_then(StaticFile::get)
-        .map(|data| {
-            Content(
-                ContentType::new(
-                    data.mime.type_().as_str(),
-                    data.mime.subtype().as_str(),
-                ),
-                data.content.to_vec(),
-            )
-        })
+    let path_str = path.as_os_str().to_str()?;
+    let data = StaticFile::get(path_str)?;
+    let mime = mime_guess::from_path(path).first_or_octet_stream();  
+    Some(Content(
+        ContentType::new(
+            mime.type_().to_string(),
+            mime.subtype().to_string(),
+        ),
+        data.content.to_vec(),
+    ))
 }
 
 // fn photo_details(id: String, context: Context) -> Response {
