@@ -1,6 +1,4 @@
-use crate::schema::people::dsl::people;
 use crate::schema::photos::dsl::photos;
-use crate::schema::places::dsl::places;
 use crate::schema::tags::dsl::tags;
 use anyhow::Result;
 use diesel::expression::dsl::{count_star, sql};
@@ -15,9 +13,7 @@ pub fn show_stats(db: &SqliteConnection) -> Result<()> {
     );
 
     println!(
-        "There are {} persons, {} places, and {} tags mentioned.",
-        people.select(count_star()).first::<i64>(db)?,
-        places.select(count_star()).first::<i64>(db)?,
+        "There are {} tags mentioned.",
         tags.select(count_star()).first::<i64>(db)?,
     );
 

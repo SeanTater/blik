@@ -3,3 +3,6 @@ rphotosdb = { url = "rphotos.db" }
 
 [development]
 secret_key = "EK4oAEmwIik4uuMZiNywe+oZE1ankZosrs87z1Bw0jk="
+
+[staging]
+secret_key = "EK4oAEmwIik4uuMZiNywe+oZE1ankZosrs87z1Bw0jk="

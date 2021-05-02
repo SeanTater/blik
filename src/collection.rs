@@ -1,10 +1,9 @@
 use crate::myexif::ExifData;
 use crate::{dbopt, models::Modification, models::Photo};
 use anyhow::{Context, Result};
-use diesel::{insert_into, ExpressionMethods, QueryDsl, RunQueryDsl};
 use image::{self, GenericImageView, ImageError};
 use io::Write;
-use log::{debug, info, warn};
+use log::{debug, info};
 use sha2::Digest;
 use std::path::{Path, PathBuf};
 use std::{fs, io};
@@ -57,7 +56,7 @@ impl Collection {
         image::load_from_memory(&image_bytes)?
             .thumbnail(256, 256)
             .write_to(&mut thumbnail, image::ImageOutputFormat::Jpeg(80))?;
-        let photo = match Photo::create_or_set_basics(
+        match Photo::create_or_set_basics(
             db,
             &id,
             file_path
@@ -71,51 +70,14 @@ impl Collection {
         )? {
             Modification::Created(photo) => {
                 info!("Created #{}, {}", photo.id, photo.path);
-                photo
             }
             Modification::Updated(photo) => {
                 info!("Modified {:?}", photo);
-                photo
             }
             Modification::Unchanged(photo) => {
                 debug!("No change for {:?}", photo);
-                photo
             }
         };
-        if let Some((lat, long)) = exif.position() {
-            debug!("Position for {} is {} {}", file_path.display(), lat, long);
-            use crate::schema::positions::dsl::*;
-            if let Ok((clat, clong)) = positions
-                .filter(photo_id.eq(&photo.id))
-                .select((latitude, longitude))
-                .first::<(i32, i32)>(db)
-            {
-                let lat = (lat * 1e6) as i32;
-                let long = (long * 1e6) as i32;
-                if clat != lat || clong != long {
-                    warn!(
-                        "Photo #{}: {}: \
-                         Exif position {}, {} differs from saved {}, {}",
-                        photo.id, photo.path, clat, clong, lat, long,
-                    );
-                }
-            } else {
-                info!(
-                    "Position for {} is {} {}",
-                    file_path.display(),
-                    lat,
-                    long
-                );
-                insert_into(positions)
-                    .values((
-                        photo_id.eq(&photo.id),
-                        latitude.eq((lat * 1e6) as i32),
-                        longitude.eq((long * 1e6) as i32),
-                    ))
-                    .execute(db)
-                    .context("Insert image position")?;
-            }
-        }
         Ok(())
     }
 

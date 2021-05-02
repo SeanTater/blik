@@ -98,6 +98,8 @@ impl ExifData {
             warn!("No date found in exif");
             None
         }
+        .filter(|d| d != &NaiveDateTime::from_timestamp(0, 0))
+        .filter(|d| d != &NaiveDate::from_ymd(2000, 1, 1).and_hms(0, 0, 0))
     }
     pub fn position(&self) -> Option<(f64, f64)> {
         if let (Some(lat), Some(long)) = (self.lat(), self.long()) {
@@ -168,7 +170,7 @@ fn is_datetime(f: &Field, tag: Tag) -> Option<NaiveDateTime> {
         single_ascii(&f.value)
             .and_then(|s| Ok(NaiveDateTime::parse_from_str(s, "%Y:%m:%d %T")?))
             .map_err(|e| {
-                println!("ERROR: Expected datetime for {}: {:?}", tag, e);
+                println!("ERROR: Expected datetime for {} (which was {:?}): {:?}", tag, &f.value, e);
             })
             .ok()
     } else {

@@ -37,7 +37,6 @@ pub fn timeline(
         &mut out,
         "All photos",
         &photo_list,
-        &[],
         flash,
     )?;
     Ok(Html(out.into_inner()))

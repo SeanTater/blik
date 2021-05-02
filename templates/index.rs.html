@@ -1,9 +1,8 @@
-@use super::{data_positions, page_base};
-@use crate::models::Coord;
+@use super::page_base;
 @use crate::server::PhotoLink;
 @use rocket::request::FlashMessage;
 
-@(title: &str, photos: &[PhotoLink], coords: &[(Coord, String)], flash: Option<FlashMessage>)
+@(title: &str, photos: &[PhotoLink], flash: Option<FlashMessage>)
 
 @:page_base(title, {
   <meta property='og:title' content='@title'>
@@ -13,7 +12,7 @@
   @for message in flash {
     <div class="card flash-message flash-@message.name()">@message.msg()</div>
   }
-  <div class="group"@:data_positions(coords)>
+  <div class="group">
     @for photo in photos {
       <div class="card item@if photo.is_portrait() { portrait}">@if let Some(ref title) = photo.title {<h2>@title</h2>}
         <a href="@photo.href"><img src="/photo/@photo.id/thumbnail" alt="Photo @photo.id"></a>

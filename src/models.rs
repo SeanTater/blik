@@ -1,20 +1,12 @@
 use crate::schema::attributions::dsl as a;
-use crate::schema::people::dsl as h;
-use crate::schema::photo_people::dsl as ph;
-use crate::schema::photo_places::dsl as pl;
 use crate::schema::photo_tags::dsl as pt;
 use crate::schema::photos;
 use crate::schema::photos::dsl as p;
-use crate::schema::places::dsl as l;
-use crate::schema::positions::dsl as pos;
 use crate::schema::tags::dsl as t;
 use chrono::{naive::NaiveDateTime, Datelike};
 use diesel::prelude::*;
 use diesel::result::Error;
-use diesel::sql_types::Integer;
 use diesel::sqlite::{Sqlite, SqliteConnection};
-use log::error;
-use slug::slugify;
 use std::cmp::max;
 
 #[derive(AsChangeset, Clone, Debug, Identifiable, Queryable)]
@@ -137,36 +129,6 @@ impl Photo {
         }
     }
 
-    pub fn load_people(
-        &self,
-        db: &SqliteConnection,
-    ) -> Result<Vec<Person>, Error> {
-        h::people
-            .filter(
-                h::id.eq_any(
-                    ph::photo_people
-                        .select(ph::person_id)
-                        .filter(ph::photo_id.eq(&self.id)),
-                ),
-            )
-            .load(db)
-    }
-
-    pub fn load_places(
-        &self,
-        db: &SqliteConnection,
-    ) -> Result<Vec<Place>, Error> {
-        l::places
-            .filter(
-                l::id.eq_any(
-                    pl::photo_places
-                        .select(pl::place_id)
-                        .filter(pl::photo_id.eq(&self.id)),
-                ),
-            )
-            .order(l::osm_level.desc())
-            .load(db)
-    }
     pub fn load_tags(&self, db: &SqliteConnection) -> Result<Vec<Tag>, Error> {
         t::tags
             .filter(
@@ -177,21 +139,6 @@ impl Photo {
                 ),
             )
             .load(db)
-    }
-
-    pub fn load_position(&self, db: &SqliteConnection) -> Option<Coord> {
-        match pos::positions
-            .filter(pos::photo_id.eq(&self.id))
-            .select((pos::latitude, pos::longitude))
-            .first::<(i32, i32)>(db)
-        {
-            Ok(c) => Some(c.into()),
-            Err(diesel::NotFound) => None,
-            Err(err) => {
-                error!("Failed to read position: {}", err);
-                None
-            }
-        }
     }
 
     pub fn load_attribution(&self, db: &SqliteConnection) -> Option<String> {
@@ -258,92 +205,6 @@ pub struct PhotoTag {
     pub id: i32,
     pub photo_id: String,
     pub tag_id: i32,
-}
-
-#[derive(Debug, Clone, Queryable)]
-pub struct Person {
-    pub id: i32,
-    pub slug: String,
-    pub person_name: String,
-}
-
-impl Person {
-    pub fn get_or_create_name(
-        db: &SqliteConnection,
-        name: &str,
-    ) -> Result<Person, Error> {
-        match h::people
-            .filter(h::person_name.like(name))
-            .first::<Person>(db)
-        {
-            Ok(person) => Ok(person),
-            Err(_) => {
-                let slug = slugify(name);
-                diesel::insert_into(h::people)
-                    .values((h::person_name.eq(name), h::slug.eq(&slug)))
-                    .execute(db)?;
-                h::people.filter(h::slug.eq(slug)).first(db)
-            }
-        }
-    }
-}
-
-impl Facet for Person {
-    fn by_slug(slug: &str, db: &SqliteConnection) -> Result<Person, Error> {
-        h::people.filter(h::slug.eq(slug)).first(db)
-    }
-}
-
-#[derive(Debug, Clone, Queryable)]
-pub struct PhotoPerson {
-    pub id: i32,
-    pub photo_id: String,
-    pub person_id: i32,
-}
-
-#[derive(Debug, Clone, Queryable)]
-pub struct Place {
-    pub id: i32,
-    pub slug: String,
-    pub place_name: String,
-    pub osm_id: Option<i64>,
-    pub osm_level: Option<i16>,
-}
-
-impl Facet for Place {
-    fn by_slug(slug: &str, db: &SqliteConnection) -> Result<Place, Error> {
-        l::places.filter(l::slug.eq(slug)).first(db)
-    }
-}
-
-#[derive(Debug, Clone, Queryable)]
-pub struct PhotoPlace {
-    pub id: i32,
-    pub photo_id: String,
-    pub place_id: i32,
-}
-
-#[derive(Debug, Clone)]
-pub struct Coord {
-    pub x: f64,
-    pub y: f64,
-}
-
-impl Queryable<(Integer, Integer), Sqlite> for Coord {
-    type Row = (i32, i32);
-
-    fn build(row: Self::Row) -> Self {
-        Coord::from((row.0, row.1))
-    }
-}
-
-impl From<(i32, i32)> for Coord {
-    fn from((lat, long): (i32, i32)) -> Coord {
-        Coord {
-            x: f64::from(lat) / 1e6,
-            y: f64::from(long) / 1e6,
-        }
-    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
