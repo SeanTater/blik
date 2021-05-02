@@ -13,7 +13,6 @@ use self::render_ructe::BuilderExt;
 use self::views_by_date::*;
 use super::DirOpt;
 use crate::models::Photo;
-use crate::pidfiles::handle_pid_file;
 use crate::templates::{self, Html, RenderRucte};
 use anyhow::Result;
 use chrono::Datelike;
@@ -25,35 +24,16 @@ use rocket::response::Content;
 use rocket::response::Redirect;
 use serde::Deserialize;
 use std::sync::Arc;
-use std::{net::SocketAddr, path::PathBuf};
+use std::path::PathBuf;
 use structopt::StructOpt;
-use warp::filters::path::Tail;
-use warp::http::{header, response::Builder, StatusCode};
+use warp::http::{response::Builder, StatusCode};
 use warp::reply::Response;
-use warp::{self, Filter, Rejection, Reply};
+use warp::{self, Rejection};
 #[derive(StructOpt)]
 #[structopt(rename_all = "kebab-case")]
 pub struct Args {
     #[structopt(flatten)]
     photos: DirOpt,
-
-    /// Write (and read, if --replace) a pid file with the name
-    /// given as <PIDFILE>.
-    #[structopt(long)]
-    pidfile: Option<String>,
-    /// Kill old server (identified by pid file) before running.
-    #[structopt(long, short)]
-    replace: bool,
-    /// Socket addess for rphotos to listen on.
-    #[structopt(
-        long,
-        env = "RPHOTOS_LISTEN",
-        default_value = "127.0.0.1:6767"
-    )]
-    listen: SocketAddr,
-    /// Signing key for jwt
-    #[structopt(long, env = "JWT_KEY", hide_env_values = true)]
-    jwt_key: String,
 }
 
 // pub async fn run_old(args: &Args) -> Result<()> {
