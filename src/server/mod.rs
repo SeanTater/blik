@@ -1,5 +1,3 @@
-mod admin;
-mod autocomplete;
 pub mod context;
 mod image;
 mod login;
