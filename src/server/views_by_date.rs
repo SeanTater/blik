@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use super::{context::GlobalContext, LoggedIn};
-use super::{Context, PhotoLink, RPhotosDB,};
+use super::{Context, PhotoLink, RPhotosDB};
 use crate::models::{Photo, SizeTag};
 use crate::templates::{self, RenderRucte};
 use anyhow::Result;
@@ -11,7 +11,7 @@ use diesel::dsl::sql;
 use diesel::prelude::*;
 use diesel::sql_types::{BigInt, Integer};
 use log::warn;
-use rocket::{State, request::FlashMessage, response::content::Html};
+use rocket::{request::FlashMessage, response::content::Html, State};
 use serde::Deserialize;
 use warp::http::response::Builder;
 use warp::reply::Response;
@@ -21,7 +21,7 @@ pub fn timeline(
     _user: LoggedIn,
     globe: State<Arc<GlobalContext>>,
     db: RPhotosDB,
-    flash: Option<FlashMessage>
+    flash: Option<FlashMessage>,
 ) -> Result<Html<Vec<u8>>> {
     use crate::schema::photos::dsl::photos;
     let db = db.0;
@@ -43,6 +43,13 @@ pub fn timeline(
         .collect::<Vec<_>>();
     let context = Context::new(globe.inner().clone());
     let mut out = std::io::Cursor::new(vec![]);
-    templates::index(&mut out, &context, "All photos", &photo_list, &[], flash)?;
+    templates::index(
+        &mut out,
+        &context,
+        "All photos",
+        &photo_list,
+        &[],
+        flash,
+    )?;
     Ok(Html(out.into_inner()))
 }
