@@ -81,38 +81,6 @@ fn need_to_login() -> Redirect {
     Redirect::to("/login")
 }
 
-fn not_found(context: &Context) -> Response {
-    Builder::new()
-        .status(StatusCode::NOT_FOUND)
-        .html(|o| {
-            templates::not_found(
-                o,
-                context,
-                StatusCode::NOT_FOUND,
-                "The resource you requested could not be located.",
-            )
-        })
-        .unwrap()
-}
-
-fn redirect_to_img(image: &str) -> Response {
-    redirect(&format!("/img/{}", image))
-}
-
-fn redirect(url: &str) -> Response {
-    Builder::new().redirect(url)
-}
-
-fn permission_denied() -> Result<Response, Rejection> {
-    error_response(StatusCode::UNAUTHORIZED)
-}
-
-fn error_response(err: StatusCode) -> Result<Response, Rejection> {
-    Builder::new()
-        .status(err)
-        .html(|o| templates::error(o, err, "Sorry about this."))
-}
-
 /// Handler for static files.
 /// Create a response from the file data with a correct content type
 /// and a far expires header (or a 404 if the file does not exist).
@@ -133,135 +101,47 @@ pub fn static_file(path: PathBuf) -> Option<Content<Vec<u8>>> {
         })
 }
 
-fn random_image(context: Context) -> Response {
-    use crate::schema::photos::dsl::id;
-    use diesel::expression::dsl::sql;
-    use diesel::sql_types::Integer;
-    if let Ok(photo) = Photo::query(context.is_authorized())
-        .select(id)
-        .limit(1)
-        .order(sql::<Integer>("random()"))
-        .first::<String>(&context.db())
-    {
-        info!("Random: {:?}", photo);
-        redirect_to_img(&photo)
-    } else {
-        not_found(&context)
-    }
-}
-
-fn photo_details(id: String, context: Context) -> Response {
-    use crate::schema::photos::dsl::photos;
-    let c = context.db();
-    if let Ok(tphoto) = photos.find(id).first::<Photo>(&c) {
-        if context.is_authorized() || tphoto.is_public() {
-            return Builder::new()
-                .html(|o| {
-                    templates::details(
-                        o,
-                        &context,
-                        &tphoto
-                            .date
-                            .map(|d| {
-                                vec![
-                                    Link::year(d.year()),
-                                    Link::month(d.year(), d.month() as i32),
-                                    Link::day(
-                                        d.year(),
-                                        d.month() as i32,
-                                        d.day() as i32,
-                                    ),
-                                    Link::prev(&tphoto.id),
-                                    Link::next(&tphoto.id),
-                                ]
-                            })
-                            .unwrap_or_default(),
-                        &tphoto.load_people(&c).unwrap(),
-                        &tphoto.load_places(&c).unwrap(),
-                        &tphoto.load_tags(&c).unwrap(),
-                        &tphoto.load_position(&c),
-                        &tphoto.load_attribution(&c),
-                        &tphoto,
-                    )
-                })
-                .unwrap();
-        }
-    }
-    not_found(&context)
-}
-
-pub type Link = Html<String>;
-
-impl Link {
-    fn year(year: i32) -> Self {
-        Html(format!(
-            "<a href='/{0}/' title='Images from {0}' accessKey='y'>{0}</a>",
-            year,
-        ))
-    }
-    fn month(year: i32, month: i32) -> Self {
-        Html(format!(
-            "<a href='/{0}/{1}/' title='Images from {2} {0}' \
-             accessKey='m'>{1}</a>",
-            year,
-            month,
-            monthname(month),
-        ))
-    }
-    fn day(year: i32, month: i32, day: i32) -> Self {
-        Html(format!(
-            "<a href='/{0}/{1}/{2}' title='Images from {2} {3} {0}' \
-             accessKey='d'>{2}</a>",
-            year,
-            month,
-            day,
-            monthname(month),
-        ))
-    }
-    fn prev(from: &str) -> Self {
-        Html(format!(
-            "<a href='/prev?from={}' title='Previous image (by time)'>\
-             \u{2190}</a>",
-            from,
-        ))
-    }
-    fn next(from: &str) -> Self {
-        Html(format!(
-            "<a href='/next?from={}' title='Next image (by time)' \
-             accessKey='n'>\u{2192}</a>",
-            from,
-        ))
-    }
-}
+// fn photo_details(id: String, context: Context) -> Response {
+//     use crate::schema::photos::dsl::photos;
+//     let c = context.db();
+//     if let Ok(tphoto) = photos.find(id).first::<Photo>(&c) {
+//         if context.is_authorized() || tphoto.is_public() {
+//             return Builder::new()
+//                 .html(|o| {
+//                     templates::details(
+//                         o,
+//                         &context,
+//                         &tphoto
+//                             .date
+//                             .map(|d| {
+//                                 vec![
+//                                     Link::year(d.year()),
+//                                     Link::month(d.year(), d.month() as i32),
+//                                     Link::day(
+//                                         d.year(),
+//                                         d.month() as i32,
+//                                         d.day() as i32,
+//                                     ),
+//                                     Link::prev(&tphoto.id),
+//                                     Link::next(&tphoto.id),
+//                                 ]
+//                             })
+//                             .unwrap_or_default(),
+//                         &tphoto.load_people(&c).unwrap(),
+//                         &tphoto.load_places(&c).unwrap(),
+//                         &tphoto.load_tags(&c).unwrap(),
+//                         &tphoto.load_position(&c),
+//                         &tphoto.load_attribution(&c),
+//                         &tphoto,
+//                     )
+//                 })
+//                 .unwrap();
+//         }
+//     }
+//     not_found(&context)
+// }
 #[derive(Debug, Default, Deserialize)]
 pub struct ImgRange {
     pub from: Option<String>,
     pub to: Option<String>,
 }
-/// Make anything that can be an anyhow Error into a Rejection
-#[derive(Debug)]
-struct AnyhowRejection(anyhow::Error);
-impl warp::reject::Reject for AnyhowRejection {}
-impl<X> From<X> for AnyhowRejection
-where
-    X: Into<anyhow::Error>,
-{
-    fn from(x: X) -> Self {
-        AnyhowRejection(x.into())
-    }
-}
-
-/// Make any error into a rejection
-trait AnyhowRejectionExt<X> {
-    fn or_reject(self) -> Result<X, AnyhowRejection>;
-}
-impl<X, Y> AnyhowRejectionExt<X> for Result<X, Y>
-where
-    Y: Into<anyhow::Error>,
-{
-    fn or_reject(self) -> Result<X, AnyhowRejection> {
-        self.map_err(AnyhowRejection::from)
-    }
-}
-
-type WarpResult = Result<Response, Rejection>;

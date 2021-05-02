@@ -1,7 +1,0 @@
-@use crate::server::PhotoLink;
-
-@(photo: &PhotoLink)
-<div class="card item@if photo.is_portrait() { portrait}">@if let Some(ref title) = photo.title {<h2>@title</h2>}
-  <a href="@photo.href"><img src="/photo/@photo.id/thumbnail" alt="Photo @photo.id"></a>
-  @if let Some(ref d) = photo.label {<span class="label">@d</span>}
-</div>

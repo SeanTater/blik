@@ -1,6 +1,6 @@
-@use crate::server::{Context, Link};
+@use crate::server::Context;
 
-@(context: &Context, lpath: &[Link])
+@(context: &Context)
 
 <header class="cardy">
   <main-header>
@@ -16,12 +16,6 @@
     <span><a href="/logout">log out</a></span>
   </main-header>
   <sub-header>
-    <ul class="breadcrumbs">
-      <li> Home </li>
-      @for p in lpath {
-        <li> &gt; @p </li>
-      }
-    </ul>
     <form action="/photo" method="POST"  enctype="multipart/form-data">
       <input type="file" name="image" accept="image/*,video/*" multiple />
       <button>Upload</button>

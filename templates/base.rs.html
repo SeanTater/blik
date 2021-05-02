@@ -1,8 +1,8 @@
 @use super::statics::{photos_css, admin_js, ux_js};
 @use super::head;
-@use crate::server::{Context, Link};
+@use crate::server::Context;
 
-@(context: &Context, title: &str, lpath: &[Link], meta: Content, content: Content)
+@(context: &Context, title: &str, meta: Content, content: Content)
 
 <!doctype html>
 <html>
@@ -14,7 +14,7 @@
     @:meta()
   </head>
   <body>
-    @:head(context, lpath)
+    @:head(context)
     
     <main>
       @:content()

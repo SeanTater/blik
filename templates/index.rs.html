@@ -1,11 +1,11 @@
-@use super::{data_positions, page_base, photo_link};
+@use super::{data_positions, page_base};
 @use crate::models::Coord;
-@use crate::server::{Context, Link, PhotoLink};
+@use crate::server::{Context, PhotoLink};
 @use rocket::request::FlashMessage;
 
-@(context: &Context, title: &str, lpath: &[Link], photos: &[PhotoLink], coords: &[(Coord, String)], flash: Option<FlashMessage>)
+@(context: &Context, title: &str, photos: &[PhotoLink], coords: &[(Coord, String)], flash: Option<FlashMessage>)
 
-@:page_base(context, title, lpath, {
+@:page_base(context, title, {
   <meta property='og:title' content='@title'>
     @for img in photos {
     <meta property='og:image' content='/img/@img.id-m.jpg' />}
@@ -14,6 +14,11 @@
     <div class="card flash-message flash-@message.name()">@message.msg()</div>
   }
   <div class="group"@:data_positions(coords)>
-    @for p in photos {@:photo_link(p)}
+    @for photo in photos {
+      <div class="card item@if photo.is_portrait() { portrait}">@if let Some(ref title) = photo.title {<h2>@title</h2>}
+        <a href="@photo.href"><img src="/photo/@photo.id/thumbnail" alt="Photo @photo.id"></a>
+        @if let Some(ref d) = photo.label {<span class="label">@d</span>}
+      </div>
+    }
   </div>
 })

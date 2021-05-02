@@ -1,8 +1,8 @@
 @use super::base;
-@use crate::server::{Context, Link};
+@use crate::server::Context;
 
-@(context: &Context, title: &str, lpath: &[Link], meta: Content, content: Content)
-@:base(context, title, lpath, meta, {
+@(context: &Context, title: &str, meta: Content, content: Content)
+@:base(context, title, meta, {
     <h1>@title</h1>
     @:content()
 })
