@@ -8,7 +8,7 @@ use std::sync::Mutex;
 pub struct GlobalContext {
     pub collection: Collection,
     // Note for simplicity only one new person can login at a time.
-    open_token: Mutex<Option<(u64, DateTime<Utc>)>>,
+    open_token: Mutex<Option<(u32, DateTime<Utc>)>>,
 }
 
 impl GlobalContext {
@@ -24,7 +24,7 @@ impl GlobalContext {
     }
 
     /// Generate a new login token that expires in a few minutes
-    pub fn generate_login_token(&self, ttl_minutes: usize) -> u64 {
+    pub fn generate_login_token(&self, ttl_minutes: usize) -> u32 {
         let code = rand::random();
         let ttl_minutes = ttl_minutes.min(24 * 60) as i64 * 60;
         let ttl_minutes = chrono::Duration::minutes(ttl_minutes);
@@ -36,7 +36,7 @@ impl GlobalContext {
     }
 
     /// Check and possibly consume the login token
-    pub fn use_login_token(&self, code: u64) -> bool {
+    pub fn use_login_token(&self, code: u32) -> bool {
         let success = match *self.open_token.lock().unwrap() {
             None => false,
             Some((correct, expiration)) => {

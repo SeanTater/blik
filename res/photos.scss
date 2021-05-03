@@ -19,18 +19,47 @@ html {
 }
 
 body {
-    width: 80vw;
-    margin: 0 auto;
     font-family: 'Roboto Sans','Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     line-height: 1.6;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     min-height: 100%;
-
-    // FIXME? Only on details?
-    max-height: 100vh;
+    margin: 0;
 }
+
+//
+// Desktop View
+//
+@media screen and (min-width: 50em) {
+    body {
+        width: 80vw;
+        margin: 0 auto;
+    }
+    main {
+        padding: 1em;
+    }
+    .card, .item {
+        padding: 0.75em;
+        margin: 0.25em;
+    }
+    div.group img {
+        display: block;
+        height: calc(5em + 10vw);
+        object-fit: cover;
+        object-position: 50% 33%;
+        width: -moz-available;
+        width: -webkit-fill-available;
+        width: available;
+    }
+}
+
+@media screen and (max-width: 50em) {
+    div.group img {
+        width: 100vw;
+    }
+}
+
 
 h1 {
     small.n_hits {
@@ -70,9 +99,8 @@ header {
     main-header {
         background-color: var(--accent);
         color: var(--accent-contrast);
-        line-height: 10vh;
+        line-height: 8vh;
         display: flex;
-        font-size: x-large;
 
         h1 {
             margin: 0 2vh;
@@ -84,10 +112,6 @@ header {
             flex-grow: 1;
             margin-right: 1em;
         }
-        & > :last-child {
-            flex-grow: 5;
-            padding-left: 1em;
-        }
     }
 
     sub-header {
@@ -97,7 +121,6 @@ header {
         font-weight: bold;
         font-size: medium;
         display: flex;
-        z-index: 5;
         & a, &a:visited, &a:link {
             text-decoration: none;
             color: var(--accent-blend);
@@ -113,13 +136,6 @@ header {
     .user {
         flex-grow: 5;
         text-align: right;
-    }
-    form.search {
-        flex-grow: 3;
-        &.hidden {
-            flex-grow: 0;
-            .refs { display: none; }
-        }
     }
 }
 
@@ -138,91 +154,11 @@ footer {
     }
 }
 
-form.search {
-    border: 0;
-    display: flex;
-    flex-flow: row wrap;
-    padding: 0;
-    text-align: left;
-    position: relative;
-    label {
-        padding: 0 .3em 0 0;
-    }
-    .list {
-        left: 1.5em;
-        position: absolute;
-        top: 1.9em;
-        z-index: 10;
-        a.hit {
-            background: white;
-            border: solid 1px #666;
-            color: black;
-            display: block;
-            padding: 0 1ex;
-            text-align: left;
-            text-decoration: none;
-            &:focus {
-                background: #bbf;
-            }
-            &:nth-child(n + 2) {
-                border-top: 0;
-            }
-        }
-    }
-    .refs {
-        display: inline-flex;
-        flex-flow: row wrap;
-        background: white;
-        border: solid 1px #baa;
-        border-radius: .2em;
-        margin: 2px 0;
-        padding: 0;
-        flex-grow: 1;
-        label {
-            background: #bbf;
-            border-radius: 1ex;
-            line-height: 1.4;
-            margin: .1em;
-            padding: 0 1ex;
-	    &.not {
-		background: #fbb;
-		text-decoration: line-through;
-	    }
-        }
-        input {
-            background: transparent;
-            border: 0;
-            flex-basis: 2em;
-            flex-grow: 1;
-            margin: 2px;
-        }
-    }
-    .l:before {
-        content: '⌖ ';
-        margin-left: .4em;
-    }
-    .p:before {
-        content: '☺ ';
-        margin-left: .3em;
-    }
-    .t:before {
-        content: '🏷 ';
-        margin-left: .1em;
-    }
-    .time {
-        margin-left: 1em;
-    }
-}
 
 main {
     background: var(--white-sheet);
-    margin: 5vh 0;
-    padding: 1em;
     flex-grow: 1;
     margin-bottom: 1em;
-    form.search {
-        width: -moz-available;
-    }
 }
 
 header, footer, main {
@@ -232,38 +168,18 @@ header, footer, main {
 
 .card {
     box-shadow: 1 1px 4px 0 gray;
-    background: #ccc;
-    border: solid 1px white;
-    margin: 0.25em;
-    padding: 0.75em;
 }
 
 div.group {
   display: flex;
-  flex-flow: row-reverse wrap;
+  flex-flow: row wrap;
   justify-content: space-between;
-  margin: 0 -.1em;
 
   .item {
     position: relative;
-    margin: 2em;
     flex-grow: .1;
     &.portrait {
-	flex-grow: .3;
-    }
-
-    img {
-      display: block;
-      height: calc(5em + 10vw);
-      object-fit: cover;
-      object-position: 50% 33%;
-      width: -moz-available;
-      width: -webkit-fill-available;
-      width: available;
-    }
-    // TODO: Set first-line class by js.
-    &.first-line img {
-	height: calc(6em + 11vw);
+	    flex-grow: .3;
     }
     h2, .label {
       text-shadow: 0 0 .1em white, 0 0 .4em white;
@@ -300,83 +216,6 @@ div.group {
   }
 }
 
-main.details {
-    margin: 0;
-    padding: 1ex;
-
-    img.item {
-        height: auto;
-        width: -moz-available;
-        width: -webkit-fill-available;
-        width: available;
-        &.zoom {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: -moz-available;
-            height: -moz-available;
-            z-index: 10000;
-            object-fit: contain;
-        }
-    }
-}
-
-
-@media screen and (min-width: 50em) {
-    main.details {
-        align-items: start;
-        display: grid;
-        flex: content 1 1;
-        grid-gap: 1ex;
-        grid-template-columns: 1fr fit-content(29%);
-        grid-template-rows: min-content 1fr min-content 1fr;
-        max-height: -moz-available;
-        overflow: hidden;
-
-        h1 {
-            grid-column: 2;
-            margin: 0;
-        }
-        img.item {
-            display: block;
-            grid-row: 1 / -1;
-            margin: 0 auto auto;
-            max-width: -moz-available;
-            max-height: -moz-available;
-            max-height: calc(100% - 2px);
-            max-width: calc(100% - 2px);
-            object-fit: scale-down;
-            width: auto;
-            height: auto;
-
-            .zoom {
-                grid-column: 1 / 3;
-            }
-        }
-        .places a:nth-child(n+2) {
-            font-size: 80%;
-        }
-        .meta {
-            overflow: auto;
-            height: -moz-available;
-            height: 100%;
-        }
-        #map {
-            grid-row: -2;
-            height: calc(100% - 2px) !important;
-            margin: 0;
-            width: -moz-available;
-        }
-        .admbuttons {
-            flex-flow: row wrap;
-            margin: 0;
-            button {
-                margin: 0;
-            }
-        }
-    }
-}
-
 ul.alltags, ul.allpeople, ul.allplaces {
     -moz-column-width: 13em;
     column-width: 13em;
@@ -389,25 +228,7 @@ ul.alltags, ul.allpeople, ul.allplaces {
     max-height: 60vh;
 }
 
-div.admbuttons {
-    display: flex;
-    flex-flow: row wrap;
-    justify-content: space-between;
-    margin: 1ex -.1em 0;
-    button {
-        flex: min-content .1 1;
-        margin: .1em;
-        padding: 0;
-    }
-}
-
 form {
-    border: $border;
-    margin: auto;
-    padding: 1em;
-    width: -moz-fit-content;
-    width: fit-content;
-
     p {
         display: flex;
         flex-flow: row wrap;
@@ -416,106 +237,14 @@ form {
     label {
         padding: .2em .6em .2em 0;
     }
-}
-
-#help {
-    background: #fafafa;
-    border: solid 1px black;
-    bottom: 2em;
-    box-shadow: .3em .2em 1em;
-    display: none;
-    left: 2em;
-    padding: 1ex 1em;
-    position: fixed;
-    z-index: 1111;
-
-    &:target {
+    textarea {
         display: block;
-    }
-    h2 { margin: 0; }
-    a.close {
-        line-height: .8em;
-        padding: .1em;
-        position: absolute;
-        right: 0;
-        text-decoration: none;
-        top: 0;
+        width: 100%;
+        font-family: inherit;
+        padding: 0.5em;
     }
 }
 
-// Relevant for admin forms only.  Move to separate file?
-form.admin {
-    display: flex;
-    margin: .3em .1em 0;
-    padding: 1.6em 1ex 1.2em;
-    position: relative;
-    width: -moz-available;
-    width: -webkit-fill-available;
-    width: available;
-
-    input[type="text"], input[type="range"] {
-        flex: min-content 1 1;
-        margin-right: 1ex;
-    }
-    button.close {
-        font-size: 50%;
-        margin: 0;
-        padding: 0;
-        position: absolute;
-        right: -1ex;
-        top: -1ex;
-    }
-    &.locate {
-        background: #eee;
-        box-shadow: .2em .4em 1em rgba(0,0,0,.7);
-        display: flex;
-        flex-flow: column;
-        height: calc(95vh - 6em);
-        left: 5vw;
-        padding-bottom: 1em;
-        position: fixed;
-        top: 3em;
-        width: calc(90vw - 1ex);
-        z-index: 10000;
-
-        #amap {
-            border: $border;
-            flex-grow: 1;
-            margin: 0 auto 1ex;
-            max-height: 95vh;
-            width: -moz-available;
-            width: -webkit-fill-available;
-            width: available;
-        }
-        button {
-            flex-grow: 0;
-            align-self: flex-end;
-        }
-    }
-}
-
-div.completions {
-    border-bottom: solid 1px #888;
-    box-shadow: .2em .1em .5em rgba(0, 0, 0, .7);
-    display: block;
-    margin-left: .5em;
-    position: absolute;
-    z-index: 800;
-
-    a {
-        background: rgba(255,255,255,0.95);
-        border-color: #888;
-        border-style: solid;
-        border-width: 1px 1px 0;
-        display: block;
-        padding: .2em .5em; // .2em 2.2em;
-        color: black;
-        text-decoration: none;
-    }
-    a:focus {
-        background-color: #aaaaff;
-    }
-}
 .leaflet-popup-content img {
     max-width: 11em;
     max-height: 11em;

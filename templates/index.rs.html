@@ -1,10 +1,10 @@
-@use super::page_base;
+@use super::base;
 @use crate::server::PhotoLink;
 @use rocket::request::FlashMessage;
 
 @(title: &str, photos: &[PhotoLink], flash: Option<FlashMessage>)
 
-@:page_base(title, {
+@:base(title, {
   <meta property='og:title' content='@title'>
     @for img in photos {
     <meta property='og:image' content='/img/@img.id-m.jpg' />}
@@ -12,6 +12,13 @@
   @for message in flash {
     <div class="card flash-message flash-@message.name()">@message.msg()</div>
   }
+  <div class="card compose">
+    <form action="/photo" method="POST"  enctype="multipart/form-data">
+      <!-- <textarea name="description">Create a new story</textarea> -->
+      <input type="file" name="image" accept="image/*,video/*" multiple />
+      <button>Upload</button>
+    </form>
+  </div>
   <div class="group">
     @for photo in photos {
       <div class="card item@if photo.is_portrait() { portrait}">@if let Some(ref title) = photo.title {<h2>@title</h2>}

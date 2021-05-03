@@ -1,8 +1,8 @@
-@use super::page_base;
+@use super::base;
 
 @(code: &str)
 
-@:page_base("invite", {}, {
+@:base("invite", {}, {
     <p>
       You can use the code <code>@code</code> to login for the next 15 minutes.
       Please note that only one invitation is valid at any given time, for safety,

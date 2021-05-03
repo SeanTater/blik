@@ -1,7 +1,0 @@
-@use super::base;
-
-@(title: &str, meta: Content, content: Content)
-@:base(title, meta, {
-    <h1>@title</h1>
-    @:content()
-})

@@ -40,13 +40,17 @@ impl Collection {
             .write(true)
             .open(path)?;
         file.write_all(contents)?;
-        self.index_photo(&filename)?;
+        self.index_photo(&filename, Some(contents))?;
         Ok((hash, filename))
     }
 
-    pub fn index_photo(&self, file_path: &Path) -> Result<()> {
+    pub fn index_photo(&self, file_path: &Path, image_bytes: Option<&[u8]>) -> Result<()> {
+        let image_vec = match image_bytes {
+            Some(_) => vec![],
+            None => std::fs::read(self.basedir.join(file_path))?
+        };
+        let image_bytes = image_bytes.unwrap_or(&image_vec);
         let ref db = self.pool.get()?;
-        let image_bytes = std::fs::read(self.basedir.join(file_path))?;
         let exif =
             load_exif(&image_bytes).context("Failed reading exif data")?;
         let width = exif.width.ok_or(anyhow!("Missing width"))?;

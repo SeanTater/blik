@@ -177,6 +177,7 @@ impl Photo {
             attribution_id: None,
             width: 4000,
             height: 3000,
+            thumbnail: b""
         }
     }
 }
