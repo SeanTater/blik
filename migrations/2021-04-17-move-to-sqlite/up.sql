@@ -11,16 +11,25 @@ CREATE TABLE photos (
   grade SMALLINT,
   rotation SMALLINT NOT NULL,
   is_public BOOLEAN NOT NULL DEFAULT 0,
-  attribution_id INT,
   width INT NOT NULL,
   height INT NOT NULL,
-  thumbnail BLOB NOT NULL,
-  story TEXT NOT NULL
+  story TEXT NOT NULL,
+  lat FLOAT,
+  lon FLOAT
 );
 
 CREATE INDEX photos_date_idx ON photos (date DESC);
 CREATE INDEX photos_grade_idx ON photos (grade DESC);
 CREATE INDEX photos_story_idx ON photos (story);
+
+--
+-- Thumbnails, separated from photos both to make debugging easier
+-- and to improve performance for queries that don't use it.
+--
+CREATE TABLE thumbnail (
+  id TEXT NOT NULL PRIMARY KEY,
+  content BLOB NOT NULL
+);
 
 --
 -- Story
@@ -32,24 +41,16 @@ CREATE TABLE story (
 );
 
 --
--- Tags
+-- Annotation
 --
-CREATE TABLE tags (
-  id INTEGER NOT NULL PRIMARY KEY,
-  slug TEXT UNIQUE NOT NULL,
-  tag_name TEXT UNIQUE NOT NULL
-);
-
-CREATE TABLE photo_tags (
-  id INTEGER NOT NULL PRIMARY KEY,
-  photo_id TEXT NOT NULL NOT NULL REFERENCES photos (id),
-  tag_id INTEGER NOT NULL NOT NULL REFERENCES tags (id)
-);
-
---
--- Attributions
---
-CREATE TABLE attributions (
-  id INTEGER NOT NULL PRIMARY KEY,
-  name TEXT UNIQUE NOT NULL
-);
+CREATE TABLE annotation (
+  -- Attached to a specific photo
+  photo_id TEXT NOT NULL REFERENCES photos (id),
+  -- A type of tag, like "caption"
+  name TEXT NOT NULL,
+  -- Any detauls about this annotation, preferably JSON
+  -- so it can be human readable too
+  details TEXT,
+  -- You can't duplicate all three columns
+  PRIMARY KEY (photo_id, name, details)
+) WITHOUT ROWID;

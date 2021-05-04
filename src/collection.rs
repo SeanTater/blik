@@ -102,7 +102,7 @@ impl<'t> CollectionManager<'t> {
                 .ok_or(anyhow!("Invalid characters in filename"))?,
             exif.width as i32,
             exif.height as i32,
-            exif.date(),
+            exif.dateval,
             exif.rotation()?,
             &thumbnail_buf.into_inner(),
             &story_name

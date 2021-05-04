@@ -1,5 +1,4 @@
 use crate::schema::photos::dsl::photos;
-use crate::schema::tags::dsl::tags;
 use anyhow::Result;
 use diesel::expression::dsl::{count_star, sql};
 use diesel::prelude::*;
@@ -10,11 +9,6 @@ pub fn show_stats(db: &SqliteConnection) -> Result<()> {
     println!(
         "There are {} photos in total.",
         photos.select(count_star()).first::<i64>(db)?,
-    );
-
-    println!(
-        "There are {} tags mentioned.",
-        tags.select(count_star()).first::<i64>(db)?,
     );
 
     // Something like this should be possible, I guess?

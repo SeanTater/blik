@@ -1,15 +1,8 @@
 table! {
-    attributions (id) {
-        id -> Integer,
-        name -> Text,
-    }
-}
-
-table! {
-    photo_tags (id) {
-        id -> Integer,
+    annotation (photo_id, name, details) {
         photo_id -> Text,
-        tag_id -> Integer,
+        name -> Text,
+        details -> Text,
     }
 }
 
@@ -24,10 +17,8 @@ table! {
         grade -> Nullable<SmallInt>,
         rotation -> SmallInt,
         is_public -> Bool,
-        attribution_id -> Nullable<Integer>,
         width -> Integer,
         height -> Integer,
-        thumbnail -> Binary,
         story -> Text,
     }
 }
@@ -41,20 +32,17 @@ table! {
 }
 
 table! {
-    tags (id) {
-        id -> Integer,
-        slug -> Text,
-        tag_name -> Text,
+    thumbnail (id) {
+        id -> Text,
+        content -> Binary,
     }
 }
 
-joinable!(photo_tags -> photos (photo_id));
-joinable!(photo_tags -> tags (tag_id));
+joinable!(annotation -> photos (photo_id));
 
 allow_tables_to_appear_in_same_query!(
-    attributions,
-    photo_tags,
+    annotation,
     photos,
     story,
-    tags,
+    thumbnail,
 );

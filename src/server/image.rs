@@ -17,13 +17,13 @@ pub fn thumbnail(
     db: RPhotosDB,
     id: String,
 ) -> Result<Content<Vec<u8>>> {
-    use crate::schema::photos::dsl::photos;
+    use crate::schema::thumbnail::dsl::thumbnail;
     let db = db.0;
-    let pho = photos.find(&id).first::<Photo>(&db)?;
+    let thumb = thumbnail.find(&id).first::<crate::models::Thumbnail>(&db)?;
 
     Ok(Content(
         rocket::http::ContentType::JPEG,
-        pho.thumbnail.clone(),
+        thumb.content.clone(),
     ))
 }
 

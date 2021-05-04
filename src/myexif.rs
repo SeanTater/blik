@@ -9,9 +9,7 @@ use std::collections::HashMap;
 
 #[derive(Debug, Default)]
 pub struct ExifData {
-    dateval: Option<NaiveDateTime>,
-    gpsdate: Option<Date<Utc>>,
-    gpstime: Option<(u8, u8, u8)>,
+    pub dateval: Option<NaiveDateTime>,
     make: Option<String>,
     model: Option<String>,
     pub width: u32,
@@ -21,6 +19,7 @@ pub struct ExifData {
     longval: Option<f64>,
     latref: Option<String>,
     longref: Option<String>,
+    caption: Option<String>
 }
 
 impl ExifData {
@@ -43,11 +42,9 @@ impl ExifData {
             .filter(|f| f.ifd_num == In::PRIMARY)
             .filter_map(|f| Some((f.tag, f)))
             .collect();
-        result.dateval = exif_map
-            .get(&Tag::DateTimeOriginal)
-            .or(exif_map.get(&Tag::DateTime))
-            .or(exif_map.get(&Tag::DateTimeDigitized))
-            .and_then(|f| is_datetime(f));
+        result.dateval = exif_map.get(&Tag::DateTimeOriginal).and_then(|f| is_datetime(f))
+            .or_else(|| is_datetime(exif_map.get(&Tag::DateTime)?))
+            .or_else(|| is_datetime(exif_map.get(&Tag::DateTimeDigitized)?));
         result.make = exif_map
             .get(&Tag::Make)
             .and_then(|f| is_string(f));
@@ -69,35 +66,11 @@ impl ExifData {
         result.longref = exif_map
             .get(&Tag::GPSLongitudeRef)
             .and_then(|f| is_string(f));
-        result.gpsdate = exif_map
-            .get(&Tag::GPSDateStamp)
-            .and_then(|f| is_date(f));
-        result.gpstime = exif_map
-            .get(&Tag::GPSTimeStamp)
-            .and_then(|f| is_time(f));
+        result.caption = exif_map
+            .get(&Tag::ImageDescription)
+            .and_then(|f| is_string(f));
         
         Ok(result)
-    }
-
-    pub fn date(&self) -> Option<NaiveDateTime> {
-        // Note: I probably return and store datetime with tz,
-        // possibly utc, instead.
-        if let (&Some(date), &Some((h, m, s))) = (&self.gpsdate, &self.gpstime)
-        {
-            let naive = date
-                .and_hms(u32::from(h), u32::from(m), u32::from(s))
-                .with_timezone(&Local)
-                .naive_local();
-            debug!("GPS Date {}, {}:{}:{} => {}", date, h, m, s, naive);
-            Some(naive)
-        } else if let Some(date) = self.dateval {
-            Some(date)
-        } else {
-            warn!("No date found in exif");
-            None
-        }
-        .filter(|d| d != &NaiveDateTime::from_timestamp(0, 0))
-        .filter(|d| d != &NaiveDate::from_ymd(2000, 1, 1).and_hms(0, 0, 0))
     }
     pub fn position(&self) -> Option<(f64, f64)> {
         if let (Some(lat), Some(long)) = (self.lat(), self.long()) {
@@ -166,6 +139,10 @@ fn is_datetime(f: &Field) -> Option<NaiveDateTime> {
             println!("ERROR: Expected datetime for {} (which was {:?}): {:?}", f.tag, &f.value, e);
         })
         .ok()
+        .filter(|d| 
+            d != &NaiveDateTime::from_timestamp(0, 0)
+            && d != &NaiveDate::from_ymd(2000, 1, 1).and_hms(0, 0, 0)
+        )
 }
 
 fn is_date(f: &Field) -> Option<Date<Utc>> {

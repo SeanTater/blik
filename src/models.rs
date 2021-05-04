@@ -1,12 +1,12 @@
-use crate::schema::attributions::dsl as a;
-use crate::schema::photo_tags::dsl as pt;
+use crate::myexif::ExifData;
 use crate::schema::photos;
 use crate::schema::photos::dsl as p;
-use crate::schema::tags::dsl as t;
+use crate::schema::thumbnail::dsl as th;
 use chrono::{naive::NaiveDateTime, Datelike};
 use diesel::prelude::*;
 use diesel::result::Error;
 use diesel::sqlite::{Sqlite, SqliteConnection};
+use image::DynamicImage;
 
 #[derive(AsChangeset, Clone, Debug, Identifiable, Queryable)]
 pub struct Photo {
@@ -19,10 +19,8 @@ pub struct Photo {
     pub grade: Option<i16>,
     pub rotation: i16,
     pub is_public: bool,
-    pub attribution_id: Option<i32>,
     pub width: i32,
     pub height: i32,
-    pub thumbnail: Vec<u8>,
     pub story: String
 }
 
@@ -107,6 +105,13 @@ impl Photo {
         {
             Ok(result)
         } else {
+            diesel::insert_into(th::thumbnail)
+                .values((
+                    th::id.eq(id),
+                    th::content.eq(thumbnail)
+                ))
+                .execute(db)?;
+            
             diesel::insert_into(p::photos)
                 .values((
                     p::id.eq(id),
@@ -120,7 +125,6 @@ impl Photo {
                     p::month
                         .eq(exifdate.map(|d| d.month()).unwrap_or(1) as i32),
                     p::day.eq(exifdate.map(|d| d.day()).unwrap_or(1) as i32),
-                    p::thumbnail.eq(thumbnail),
                     p::story.eq(story)
                 ))
                 .execute(db)?;
@@ -129,24 +133,6 @@ impl Photo {
                 .first::<Photo>(db)?;
             Ok(Modification::Created(pic))
         }
-    }
-
-    pub fn load_tags(&self, db: &SqliteConnection) -> Result<Vec<Tag>, Error> {
-        t::tags
-            .filter(
-                t::id.eq_any(
-                    pt::photo_tags
-                        .select(pt::tag_id)
-                        .filter(pt::photo_id.eq(&self.id)),
-                ),
-            )
-            .load(db)
-    }
-
-    pub fn load_attribution(&self, db: &SqliteConnection) -> Option<String> {
-        self.attribution_id.and_then(|i| {
-            a::attributions.find(i).select(a::name).first(db).ok()
-        })
     }
 
     #[cfg(test)]
@@ -165,10 +151,8 @@ impl Photo {
             grade: None,
             rotation: 0,
             is_public: false,
-            attribution_id: None,
             width: 4000,
             height: 3000,
-            thumbnail: vec![],
             story: "default".into()
         }
     }
@@ -181,28 +165,32 @@ pub trait Facet {
 }
 
 #[derive(Debug, Clone, Queryable)]
-pub struct Tag {
-    pub id: i32,
-    pub slug: String,
-    pub tag_name: String,
-}
-
-impl Facet for Tag {
-    fn by_slug(slug: &str, db: &SqliteConnection) -> Result<Tag, Error> {
-        t::tags.filter(t::slug.eq(slug)).first(db)
-    }
-}
-
-#[derive(Debug, Clone, Queryable)]
-pub struct PhotoTag {
-    pub id: i32,
-    pub photo_id: String,
-    pub tag_id: i32,
-}
-
-#[derive(Debug, Clone, Queryable)]
 pub struct Story {
     pub name: String,
     pub description: String,
     pub created_on: Option<NaiveDateTime>,
+}
+
+#[derive(Debug, Clone, Queryable)]
+pub struct Thumbnail {
+    pub id: String,
+    pub content: Vec<u8>,
+}
+
+#[derive(Debug, Clone, Queryable)]
+pub struct Annotation {
+    pub photo_id: String,
+    pub name: String,
+    pub details: Option<String>
+}
+
+pub trait Annotator {
+    fn annotate(&self, exif: &ExifData, image: &DynamicImage) -> Annotation;
+}
+
+struct ExifCaption;
+impl Annotator for ExifCaption {
+    fn annotate(&self, exif: &ExifData, image: &DynamicImage) -> Annotation {
+        todo!();
+    }
 }
