@@ -19,7 +19,7 @@ mod schema;
 mod server;
 
 use crate::adm::stats::show_stats;
-use crate::adm::{findphotos, makepublic};
+use crate::adm::makepublic;
 use anyhow::Result;
 use dotenv::dotenv;
 use std::path::PathBuf;
@@ -34,8 +34,6 @@ enum RPhotos {
     ///
     /// The image path(s) are relative to the image root.
     Makepublic(makepublic::Makepublic),
-    /// Find new photos in the photo directory
-    Findphotos(findphotos::Findphotos),
     /// Show some statistics from the database
     Stats,
     /// Run the rphotos web server.
@@ -65,7 +63,6 @@ async fn main() {
 
 async fn run(args: &RPhotos) -> Result<()> {
     match args {
-        RPhotos::Findphotos(cmd) => cmd.run(),
         RPhotos::Makepublic(cmd) => cmd.run(),
         RPhotos::Stats => show_stats(&dbopt::connect()?),
         RPhotos::Runserver(ra) => server::run(ra).await,

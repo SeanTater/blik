@@ -65,9 +65,9 @@ pub fn upload(
         // So this should mostly reduce careless mistakes
         // Even a 100 MB limit may not make sense if we support video later.
 
-        let mut image_buf = vec![];
+        let mut image_slice = vec![];
 
-        part.data.take(100 << 20).read_to_end(&mut image_buf).ok()?;
+        part.data.take(100 << 20).read_to_end(&mut image_slice).ok()?;
         match story {
             None => {
                 //
@@ -75,7 +75,7 @@ pub fn upload(
                 //
                 if part.headers.name.as_ref() == "description" {
                     use crate::schema::story::dsl as story_dsl;
-                    let description = String::from_utf8(image_buf).ok()?;
+                    let description = String::from_utf8(image_slice).ok()?;
                     let name = description.split("\n").next().unwrap_or("");
                     let name = slug::slugify(&name[..name.len().min(50)]);
                     diesel::insert_or_ignore_into(story_dsl::story)
@@ -97,18 +97,16 @@ pub fn upload(
                 //
                 // Read an image
                 //
-                if image_buf.len() == 100 << 20 {
+                if image_slice.len() == 100 << 20 {
                     success = false;
                     messages.push(format!(
                         "Image {} is too large: it needs to be under 100 MB per image",
                         part.headers.filename.unwrap_or("untitled".to_string())
                     ));
                 } else {
-                    println!("Read image {} bytes long", image_buf.len());
-                    messages.push(match globe.collection.manage(&db.0).save_photo(&image_buf, &story_name) {
-                        Ok((id, path)) => {
-                            format!("Saved image with ID {} to {}", id, path.display())
-                        }
+                    println!("Read image {} bytes long", image_slice.len());
+                    messages.push(match globe.collection.manage(&db.0).index_photo(&image_slice, &story_name) {
+                        Ok(_) => "Saved image".into(),
                         Err(err) => {
                             success = false;
                             format!(

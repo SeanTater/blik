@@ -22,10 +22,7 @@ pub fn timeline(
         .load(&db)?
         .iter()
         .map(|photo: &Photo| PhotoLink {
-            title: Some(format!(
-                "{:04}-{:02}-{:02}",
-                photo.year, photo.month, photo.day
-            )),
+            title: Some(photo.date.map(|d| d.date().format("%Y-%m-%d").to_string())).unwrap_or_default(),
             href: format!("/photo/{}/details", photo.id),
             label: Some(String::new()),
             id: photo.id.clone(),

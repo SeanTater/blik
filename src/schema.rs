@@ -1,7 +1,11 @@
 table! {
-    annotation (photo_id, name, details) {
+    annotation (photo_id, name, top, bottom, left, right, details) {
         photo_id -> Text,
         name -> Text,
+        top -> Integer,
+        bottom -> Integer,
+        left -> Integer,
+        right -> Integer,
         details -> Text,
     }
 }
@@ -11,15 +15,16 @@ table! {
         id -> Text,
         path -> Text,
         date -> Nullable<Timestamp>,
-        year -> Integer,
-        month -> Integer,
-        day -> Integer,
-        grade -> Nullable<SmallInt>,
         rotation -> SmallInt,
         is_public -> Bool,
         width -> Integer,
         height -> Integer,
         story -> Text,
+        lat -> Nullable<Double>,
+        lon -> Nullable<Double>,
+        make -> Nullable<Text>,
+        model -> Nullable<Text>,
+        caption -> Nullable<Text>,
     }
 }
 

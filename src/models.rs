@@ -1,37 +1,95 @@
-use crate::myexif::ExifData;
 use crate::schema::photos;
 use crate::schema::photos::dsl as p;
 use crate::schema::thumbnail::dsl as th;
-use chrono::{naive::NaiveDateTime, Datelike};
+use chrono::naive::NaiveDateTime;
 use diesel::prelude::*;
 use diesel::result::Error;
 use diesel::sqlite::{Sqlite, SqliteConnection};
-use image::DynamicImage;
+use image::{DynamicImage, GenericImageView};
+use std::{collections::HashMap,  io::Write, path::Path};
+use sha2::Digest;
+use anyhow::Result;
 
-#[derive(AsChangeset, Clone, Debug, Identifiable, Queryable)]
+#[derive(AsChangeset, Clone, Debug, Identifiable, Insertable, Queryable, Default)]
 pub struct Photo {
     pub id: String,
     pub path: String,
     pub date: Option<NaiveDateTime>,
-    pub year: i32,
-    pub month: i32,
-    pub day: i32,
-    pub grade: Option<i16>,
     pub rotation: i16,
     pub is_public: bool,
     pub width: i32,
     pub height: i32,
-    pub story: String
-}
-
-#[derive(Debug)]
-pub enum Modification<T> {
-    Created(T),
-    Updated(T),
-    Unchanged(T),
+    pub story: String,
+    pub lat: Option<f64>,
+    pub lon: Option<f64>,
+    pub make: Option<String>,
+    pub model: Option<String>,
+    pub caption: Option<String>,
 }
 
 impl Photo {
+    /// Read Exif data from a basic image, as a reader
+    ///
+    /// This could be a file or an IO cursor depending on your use case
+    pub fn read_from(image_slice: &[u8], story: &str) -> anyhow::Result<Self> {
+        use crate::myexif::*;
+        use exif::*;
+
+        // Start with an empty photo
+        let mut result = Self::default();
+        // Fill the basics
+        result.id = format!("{:x}", sha2::Sha256::digest(&image_slice));
+
+        // Width and height are different; we always read the image.
+        {
+            let image = image::load_from_memory(&image_slice)?;
+            result.width = image.width() as i32;
+            result.height = image.height() as i32;
+        }
+        let mut cursor = std::io::Cursor::new(image_slice);
+        let reader = Reader::new().read_from_container(&mut cursor)?;
+        let exif_map: HashMap<Tag, &Field> = reader
+            .fields()
+            .filter(|f| f.ifd_num == In::PRIMARY)
+            .filter_map(|f| Some((f.tag, f)))
+            .collect();
+        result.date = exif_map.get(&Tag::DateTimeOriginal).and_then(|f| is_datetime(f))
+            .or_else(|| is_datetime(exif_map.get(&Tag::DateTime)?))
+            .or_else(|| is_datetime(exif_map.get(&Tag::DateTimeDigitized)?));
+        result.make = exif_map
+            .get(&Tag::Make)
+            .and_then(|f| is_string(f));
+        result.model = exif_map
+            .get(&Tag::Model)
+            .and_then(|f| is_string(f));
+        result.rotation = exif_map
+            .get(&Tag::Orientation)
+            .and_then(|f| is_u32(f))
+            .unwrap_or(0) as i16;
+        result.lat = exif_map
+            .get(&Tag::GPSLatitude)
+            .and_then(|f| is_lat_long(f));
+        result.lon = exif_map
+            .get(&Tag::GPSLongitude)
+            .and_then(|f| is_lat_long(f));
+        result.caption = exif_map
+            .get(&Tag::ImageDescription)
+            .and_then(|f| is_string(f));
+        result.story = story.into();
+        
+
+        let ext = *image::guess_format(image_slice)?
+            .extensions_str()
+            .first()
+            .unwrap_or(&"image");
+        result.path = match result.date {
+            Some(d) => format!("{} {}.{}", d, result.id, ext),
+            None => result.id.clone()
+        };
+        
+        Ok(result)
+    }
+
     #[allow(dead_code)]
     pub fn is_public(&self) -> bool {
         self.is_public
@@ -50,89 +108,62 @@ impl Photo {
         }
     }
 
-    pub fn update_by_path(
-        db: &SqliteConnection,
-        file_path: &str,
-        newwidth: i32,
-        newheight: i32,
-        exifdate: Option<NaiveDateTime>,
-    ) -> Result<Option<Modification<Photo>>, Error> {
-        if let Some(pic) = p::photos
-            .filter(p::path.eq(&file_path.to_string()))
-            .first::<Photo>(db)
-            .optional()?
-        {
-            let mut change = false;
-            // TODO Merge updates to one update statement!
-            if pic.width != newwidth || pic.height != newheight {
-                change = true;
-                diesel::update(p::photos.find(&pic.id))
-                    .set((p::width.eq(newwidth), p::height.eq(newheight)))
-                    .execute(db)?;
-            }
-            if exifdate.is_some() && exifdate != pic.date {
-                change = true;
-                diesel::update(p::photos.find(&pic.id))
-                    .set(p::date.eq(exifdate))
-                    .execute(db)?;
-            }
-            let pic = p::photos
-                .filter(p::path.eq(&file_path.to_string()))
-                .first::<Photo>(db)?;
-            Ok(Some(if change {
-                Modification::Updated(pic)
-            } else {
-                Modification::Unchanged(pic)
-            }))
-        } else {
-            Ok(None)
-        }
+    pub fn exists(
+        &self,
+        db: &SqliteConnection
+    ) -> bool {
+        p::photos.find(&self.id).first::<Photo>(db).is_ok()
     }
 
-    pub fn create_or_set_basics(
+    pub fn save(
+        &self,
         db: &SqliteConnection,
-        id: &str,
-        file_path: &str,
-        newwidth: i32,
-        newheight: i32,
-        exifdate: Option<NaiveDateTime>,
-        exifrotation: i16,
-        thumbnail: &[u8],
-        story: &str
-    ) -> Result<Modification<Photo>, Error> {
-        if let Some(result) =
-            Self::update_by_path(db, file_path, newwidth, newheight, exifdate)?
-        {
-            Ok(result)
-        } else {
-            diesel::insert_into(th::thumbnail)
-                .values((
-                    th::id.eq(id),
-                    th::content.eq(thumbnail)
-                ))
-                .execute(db)?;
-            
-            diesel::insert_into(p::photos)
-                .values((
-                    p::id.eq(id),
-                    p::path.eq(file_path),
-                    p::date.eq(exifdate),
-                    p::rotation.eq(exifrotation),
-                    p::width.eq(newwidth),
-                    p::height.eq(newheight),
-                    p::year
-                        .eq(exifdate.map(|d| d.year()).unwrap_or(2000) as i32),
-                    p::month
-                        .eq(exifdate.map(|d| d.month()).unwrap_or(1) as i32),
-                    p::day.eq(exifdate.map(|d| d.day()).unwrap_or(1) as i32),
-                    p::story.eq(story)
-                ))
-                .execute(db)?;
-            let pic = p::photos
-                .filter(p::path.eq(&file_path.to_string()))
-                .first::<Photo>(db)?;
-            Ok(Modification::Created(pic))
+        image_slice: &[u8],
+        basedir: &Path
+    ) -> Result<()> {
+        // Actually save the file
+        if self.exists(db) {
+            bail!("Photo is already indexed.");
         }
+        let path = basedir.join(&self.path);
+        if path.exists() {
+            bail!("Conflict with unindexed photo on disk.");
+        }
+        let mut file = std::fs::OpenOptions::new()
+            .create_new(true)
+            .write(true)
+            .open(path)?;
+        file.write_all(image_slice)?;
+
+        // Create a thumbnail
+        let thumbnail = self.create_thumbnail(image_slice)?;
+        
+        // Index the photo
+        diesel::insert_into(th::thumbnail)
+            .values((
+                th::id.eq(&self.id),
+                th::content.eq(thumbnail)
+            ))
+            .execute(db)?;
+        diesel::insert_into(p::photos)
+            .values(self)
+            .execute(db)?;
+        Ok(())
+    }
+
+    fn create_thumbnail(&self, image_bytes: &[u8]) -> Result<Vec<u8>> {
+        let mut thumbnail_buf = std::io::Cursor::new(vec![]);
+        let thumbnail = image::load_from_memory(&image_bytes)?
+            .thumbnail(256, 256);
+        // Rotate if necessary before saving
+        let thumbnail = match self.rotation {
+            90 | -270 => thumbnail.rotate90(),
+            180 | -180  => thumbnail.rotate180(),
+            270 | -90 => thumbnail.rotate270(),
+            _ => thumbnail
+        };
+        thumbnail.write_to(&mut thumbnail_buf, image::ImageOutputFormat::Jpeg(80))?;
+        Ok(thumbnail_buf.into_inner())
     }
 
     #[cfg(test)]
@@ -145,15 +176,16 @@ impl Photo {
                 y, mo, da, h, m, s,
             ),
             date: Some(NaiveDate::from_ymd(y, mo, da).and_hms(h, m, s)),
-            year: y,
-            month: mo as i32,
-            day: da as i32,
-            grade: None,
             rotation: 0,
             is_public: false,
             width: 4000,
             height: 3000,
-            story: "default".into()
+            story: "default".into(),
+            lat: None,
+            lon: None,
+            make: None,
+            model: None,
+            caption: None
         }
     }
 }
@@ -181,16 +213,20 @@ pub struct Thumbnail {
 pub struct Annotation {
     pub photo_id: String,
     pub name: String,
+    pub top: i64,
+    pub bottom: i64,
+    pub left: i64,
+    pub right: i64,
     pub details: Option<String>
 }
 
 pub trait Annotator {
-    fn annotate(&self, exif: &ExifData, image: &DynamicImage) -> Annotation;
+    fn annotate(&self, photo: &Photo, image: &DynamicImage) -> Annotation;
 }
 
 struct ExifCaption;
 impl Annotator for ExifCaption {
-    fn annotate(&self, exif: &ExifData, image: &DynamicImage) -> Annotation {
+    fn annotate(&self, photo: &Photo, image: &DynamicImage) -> Annotation {
         todo!();
     }
 }

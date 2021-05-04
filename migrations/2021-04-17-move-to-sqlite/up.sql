@@ -5,21 +5,19 @@ CREATE TABLE photos (
   id TEXT NOT NULL PRIMARY KEY,
   path TEXT UNIQUE NOT NULL,
   date TIMESTAMP,
-  year INT NOT NULL,
-  month INT NOT NULL,
-  day INT NOT NULL,
-  grade SMALLINT,
   rotation SMALLINT NOT NULL,
   is_public BOOLEAN NOT NULL DEFAULT 0,
   width INT NOT NULL,
   height INT NOT NULL,
   story TEXT NOT NULL,
-  lat FLOAT,
-  lon FLOAT
+  lat DOUBLE,
+  lon DOUBLE,
+  make TEXT,
+  model TEXT,
+  caption TEXT
 );
 
 CREATE INDEX photos_date_idx ON photos (date DESC);
-CREATE INDEX photos_grade_idx ON photos (grade DESC);
 CREATE INDEX photos_story_idx ON photos (story);
 
 --
@@ -48,9 +46,14 @@ CREATE TABLE annotation (
   photo_id TEXT NOT NULL REFERENCES photos (id),
   -- A type of tag, like "caption"
   name TEXT NOT NULL,
-  -- Any detauls about this annotation, preferably JSON
+  -- A region the tag applies to
+  top INTEGER NOT NULL DEFAULT 0,
+  bottom INTEGER NOT NULL DEFAULT 0,
+  left INTEGER NOT NULL DEFAULT 0,
+  right INTEGER NOT NULL DEFAULT 0,
+  -- Any details about this annotation, preferably JSON
   -- so it can be human readable too
   details TEXT,
   -- You can't duplicate all three columns
-  PRIMARY KEY (photo_id, name, details)
+  PRIMARY KEY (photo_id, name, top, bottom, left, right, details)
 ) WITHOUT ROWID;
