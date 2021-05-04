@@ -65,6 +65,13 @@ impl Photo {
         result.rotation = exif_map
             .get(&Tag::Orientation)
             .and_then(|f| is_u32(f))
+            .map(|value| match value {
+                // EXIF has a funny way of encoding rotations
+                3 => 180,
+                6 => 90,
+                8 => 270,
+                1 | 0 | _ => 0,
+            })
             .unwrap_or(0) as i16;
         result.lat = exif_map
             .get(&Tag::GPSLatitude)

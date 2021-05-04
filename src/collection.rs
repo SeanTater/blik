@@ -32,38 +32,3 @@ impl<'t> CollectionManager<'t> {
         Ok(pho)
     }
 }
-
-#[derive(Debug)]
-pub enum ImageLoadFailed {
-    File(io::Error),
-    Image(image::ImageError),
-    Join(JoinError),
-}
-
-impl std::error::Error for ImageLoadFailed {}
-
-impl std::fmt::Display for ImageLoadFailed {
-    fn fmt(&self, out: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match &self {
-            ImageLoadFailed::File(e) => e.fmt(out),
-            ImageLoadFailed::Image(e) => e.fmt(out),
-            ImageLoadFailed::Join(e) => e.fmt(out),
-        }
-    }
-}
-
-impl From<io::Error> for ImageLoadFailed {
-    fn from(e: io::Error) -> ImageLoadFailed {
-        ImageLoadFailed::File(e)
-    }
-}
-impl From<image::ImageError> for ImageLoadFailed {
-    fn from(e: image::ImageError) -> ImageLoadFailed {
-        ImageLoadFailed::Image(e)
-    }
-}
-impl From<JoinError> for ImageLoadFailed {
-    fn from(e: JoinError) -> ImageLoadFailed {
-        ImageLoadFailed::Join(e)
-    }
-}
