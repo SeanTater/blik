@@ -34,7 +34,7 @@ impl Findphotos {
 }
 
 fn crawl(photos: &Collection, only_in: &Path) -> Result<()> {
-    photos.find_files(only_in, &|path| match photos.index_photo(path, None) {
+    photos.find_files(only_in, &|path| match photos.index_photo(path, None, "default") {
         Ok(()) => println!("Saved photo {}", path.display()),
         Err(e) => println!("Failed to save photo {}: {:?}", path.display(), e),
     })?;

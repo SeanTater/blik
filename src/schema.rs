@@ -28,6 +28,15 @@ table! {
         width -> Integer,
         height -> Integer,
         thumbnail -> Binary,
+        story -> Text,
+    }
+}
+
+table! {
+    story (name) {
+        name -> Text,
+        description -> Nullable<Text>,
+        created_on -> Nullable<Timestamp>,
     }
 }
 
@@ -46,5 +55,6 @@ allow_tables_to_appear_in_same_query!(
     attributions,
     photo_tags,
     photos,
+    story,
     tags,
 );

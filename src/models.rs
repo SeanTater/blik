@@ -24,6 +24,7 @@ pub struct Photo {
     pub width: i32,
     pub height: i32,
     pub thumbnail: Vec<u8>,
+    pub story: String
 }
 
 #[derive(Debug)]
@@ -100,6 +101,7 @@ impl Photo {
         exifdate: Option<NaiveDateTime>,
         exifrotation: i16,
         thumbnail: &[u8],
+        story: &str
     ) -> Result<Modification<Photo>, Error> {
         if let Some(result) =
             Self::update_by_path(db, file_path, newwidth, newheight, exifdate)?
@@ -120,6 +122,7 @@ impl Photo {
                         .eq(exifdate.map(|d| d.month()).unwrap_or(1) as i32),
                     p::day.eq(exifdate.map(|d| d.day()).unwrap_or(1) as i32),
                     p::thumbnail.eq(thumbnail),
+                    p::story.eq(story)
                 ))
                 .execute(db)?;
             let pic = p::photos
@@ -177,7 +180,8 @@ impl Photo {
             attribution_id: None,
             width: 4000,
             height: 3000,
-            thumbnail: b""
+            thumbnail: vec![],
+            story: "default".into()
         }
     }
 }
@@ -206,6 +210,13 @@ pub struct PhotoTag {
     pub id: i32,
     pub photo_id: String,
     pub tag_id: i32,
+}
+
+#[derive(Debug, Clone, Queryable)]
+pub struct Story {
+    pub name: String,
+    pub description: String,
+    pub created_on: Option<NaiveDateTime>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

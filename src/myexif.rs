@@ -2,8 +2,10 @@
 use anyhow::Result;
 use chrono::{Date, Local, NaiveDate, NaiveDateTime, Utc};
 use exif::{Field, In, Reader, Tag, Value};
+use image::GenericImageView;
 use log::{debug, error, warn};
 use std::str::from_utf8;
+use std::collections::HashMap;
 
 #[derive(Debug, Default)]
 pub struct ExifData {
@@ -12,8 +14,8 @@ pub struct ExifData {
     gpstime: Option<(u8, u8, u8)>,
     make: Option<String>,
     model: Option<String>,
-    pub width: Option<u32>,
-    pub height: Option<u32>,
+    pub width: u32,
+    pub height: u32,
     orientation: Option<u32>,
     latval: Option<f64>,
     longval: Option<f64>,
@@ -25,59 +27,55 @@ impl ExifData {
     /// Read Exif data from a basic image, as a reader
     ///
     /// This could be a file or an IO cursor depending on your use case
-    pub fn read_from<R>(mut raw_reader: R) -> Result<Self>
-    where
-        R: std::io::BufRead + std::io::Seek,
-    {
+    pub fn read_from(image_slice: &[u8]) -> Result<Self> {
+        // Empty Exif struct to start
         let mut result = Self::default();
-        let reader = Reader::new().read_from_container(&mut raw_reader)?;
-        for f in reader.fields() {
-            if f.ifd_num == In::PRIMARY {
-                if let Some(d) = is_datetime(f, Tag::DateTimeOriginal) {
-                    result.dateval = Some(d);
-                } else if let Some(d) = is_datetime(f, Tag::DateTime) {
-                    result.dateval = Some(d);
-                } else if let Some(d) = is_datetime(f, Tag::DateTimeDigitized)
-                {
-                    if result.dateval.is_none() {
-                        result.dateval = Some(d)
-                    }
-                } else if let Some(s) = is_string(f, Tag::Make) {
-                    result.make = Some(s.to_string());
-                } else if let Some(s) = is_string(f, Tag::Model) {
-                    result.model = Some(s.to_string());
-                } else if let Some(w) = is_u32(f, Tag::PixelXDimension) {
-                    result.width = Some(w);
-                } else if let Some(h) = is_u32(f, Tag::PixelYDimension) {
-                    result.height = Some(h);
-                } else if let Some(w) = is_u32(f, Tag::ImageWidth) {
-                    result.width = Some(w);
-                } else if let Some(h) = is_u32(f, Tag::ImageLength) {
-                    result.height = Some(h);
-                } else if let Some(o) = is_u32(f, Tag::Orientation) {
-                    result.orientation = Some(o);
-                } else if let Some(lat) = is_lat_long(f, Tag::GPSLatitude) {
-                    result.latval = Some(lat);
-                } else if let Some(long) = is_lat_long(f, Tag::GPSLongitude) {
-                    result.longval = Some(long);
-                } else if let Some(s) = is_string(f, Tag::GPSLatitudeRef) {
-                    result.latref = Some(s.to_string());
-                } else if let Some(s) = is_string(f, Tag::GPSLongitudeRef) {
-                    result.longref = Some(s.to_string());
-                /*
-                } else if let Some(s) = is_string(f, Tag::GPSImgDirectionRef) {
-                    println!("  direction ref: {}", s);
-                } else if let Some(s) = is_string(f, Tag::GPSImgDirection) {
-                    println!("  direction: {}", s);
-                */
-                } else if let Some(d) = is_date(f, Tag::GPSDateStamp) {
-                    result.gpsdate = Some(d);
-                } else if let Some(hms) = is_time(f, Tag::GPSTimeStamp) {
-                    result.gpstime = Some(hms);
-                }
-            }
-            //println!("    {} ({}) {:?}", f.tag, f.thumbnail, f.value);
+        // Width and height are different; we always read the image.
+        {
+            let image = image::load_from_memory(&image_slice)?;
+            result.width = image.width();
+            result.height = image.height();
         }
+        let mut cursor = std::io::Cursor::new(image_slice);
+        let reader = Reader::new().read_from_container(&mut cursor)?;
+        let exif_map: HashMap<Tag, &Field> = reader
+            .fields()
+            .filter(|f| f.ifd_num == In::PRIMARY)
+            .filter_map(|f| Some((f.tag, f)))
+            .collect();
+        result.dateval = exif_map
+            .get(&Tag::DateTimeOriginal)
+            .or(exif_map.get(&Tag::DateTime))
+            .or(exif_map.get(&Tag::DateTimeDigitized))
+            .and_then(|f| is_datetime(f));
+        result.make = exif_map
+            .get(&Tag::Make)
+            .and_then(|f| is_string(f));
+        result.model = exif_map
+            .get(&Tag::Model)
+            .and_then(|f| is_string(f));
+        result.orientation = exif_map
+            .get(&Tag::Orientation)
+            .and_then(|f| is_u32(f));
+        result.latval = exif_map
+            .get(&Tag::GPSLatitude)
+            .and_then(|f| is_lat_long(f));
+        result.longval = exif_map
+            .get(&Tag::GPSLongitude)
+            .and_then(|f| is_lat_long(f));
+        result.latref = exif_map
+            .get(&Tag::GPSLatitudeRef)
+            .and_then(|f| is_string(f));
+        result.longref = exif_map
+            .get(&Tag::GPSLongitudeRef)
+            .and_then(|f| is_string(f));
+        result.gpsdate = exif_map
+            .get(&Tag::GPSDateStamp)
+            .and_then(|f| is_date(f));
+        result.gpstime = exif_map
+            .get(&Tag::GPSTimeStamp)
+            .and_then(|f| is_time(f));
+        
         Ok(result)
     }
 
@@ -148,100 +146,76 @@ impl ExifData {
     }
 }
 
-fn is_lat_long(f: &Field, tag: Tag) -> Option<f64> {
-    if f.tag == tag {
-        match f.value {
-            Value::Rational(ref v) if v.len() == 3 => {
-                let d = 1. / 60.;
-                Some(v[0].to_f64() + d * (v[1].to_f64() + d * v[2].to_f64()))
-            }
-            ref v => {
-                println!("ERROR: Bad value for {}: {:?}", tag, v);
-                None
-            }
+fn is_lat_long(f: &Field) -> Option<f64> {
+    match f.value {
+        Value::Rational(ref v) if v.len() == 3 => {
+            let d = 1. / 60.;
+            Some(v[0].to_f64() + d * (v[1].to_f64() + d * v[2].to_f64()))
         }
-    } else {
-        None
-    }
-}
-
-fn is_datetime(f: &Field, tag: Tag) -> Option<NaiveDateTime> {
-    if f.tag == tag {
-        single_ascii(&f.value)
-            .and_then(|s| Ok(NaiveDateTime::parse_from_str(s, "%Y:%m:%d %T")?))
-            .map_err(|e| {
-                println!("ERROR: Expected datetime for {} (which was {:?}): {:?}", tag, &f.value, e);
-            })
-            .ok()
-    } else {
-        None
-    }
-}
-
-fn is_date(f: &Field, tag: Tag) -> Option<Date<Utc>> {
-    if f.tag == tag {
-        single_ascii(&f.value)
-            .and_then(|s| Ok(NaiveDate::parse_from_str(s, "%Y:%m:%d")?))
-            .map(|d| Date::from_utc(d, Utc))
-            .map_err(|e| {
-                println!("ERROR: Expected date for {}: {:?}", tag, e);
-            })
-            .ok()
-    } else {
-        None
-    }
-}
-
-fn is_time(f: &Field, tag: Tag) -> Option<(u8, u8, u8)> {
-    if f.tag == tag {
-        match &f.value {
-            // Some cameras (notably iPhone) uses fractional seconds.
-            // Just round to whole seconds.
-            &Value::Rational(ref v)
-                if v.len() == 3 && v[0].denom == 1 && v[1].denom == 1 =>
-            {
-                Some((
-                    v[0].num as u8,
-                    v[1].num as u8,
-                    v[2].to_f64().round() as u8,
-                ))
-            }
-            err => {
-                error!("Expected time for {}: {:?}", tag, err);
-                None
-            }
+        ref v => {
+            println!("ERROR: Bad value for {}: {:?}", f.tag, v);
+            None
         }
-    } else {
-        None
     }
 }
 
-fn is_string(f: &Field, tag: Tag) -> Option<&str> {
-    if f.tag == tag {
-        match single_ascii(&f.value) {
-            Ok(s) => Some(s),
-            Err(err) => {
-                println!("ERROR: Expected string for {}: {:?}", tag, err);
-                None
-            }
+fn is_datetime(f: &Field) -> Option<NaiveDateTime> {
+    single_ascii(&f.value)
+        .and_then(|s| Ok(NaiveDateTime::parse_from_str(s, "%Y:%m:%d %T")?))
+        .map_err(|e| {
+            println!("ERROR: Expected datetime for {} (which was {:?}): {:?}", f.tag, &f.value, e);
+        })
+        .ok()
+}
+
+fn is_date(f: &Field) -> Option<Date<Utc>> {
+    single_ascii(&f.value)
+        .and_then(|s| Ok(NaiveDate::parse_from_str(s, "%Y:%m:%d")?))
+        .map(|d| Date::from_utc(d, Utc))
+        .map_err(|e| {
+            println!("ERROR: Expected date for {}: {:?}", f.tag, e);
+        })
+        .ok()
+}
+
+fn is_time(f: &Field) -> Option<(u8, u8, u8)> {
+    match &f.value {
+        // Some cameras (notably iPhone) uses fractional seconds.
+        // Just round to whole seconds.
+        &Value::Rational(ref v)
+            if v.len() == 3 && v[0].denom == 1 && v[1].denom == 1 =>
+        {
+            Some((
+                v[0].num as u8,
+                v[1].num as u8,
+                v[2].to_f64().round() as u8,
+            ))
         }
-    } else {
-        None
+        err => {
+            error!("Expected time for {}: {:?}", f.tag, err);
+            None
+        }
     }
 }
 
-fn is_u32(f: &Field, tag: Tag) -> Option<u32> {
-    if f.tag == tag {
-        match &f.value {
-            &Value::Long(ref v) if v.len() == 1 => Some(v[0]),
-            &Value::Short(ref v) if v.len() == 1 => Some(u32::from(v[0])),
-            v => {
-                println!("ERROR: Unsuppored value for {}: {:?}", tag, v);
-                None
-            }
+fn is_string(f: &Field) -> Option<String> {
+    match single_ascii(&f.value) {
+        Ok(s) => Some(s.to_string()),
+        Err(err) => {
+            println!("ERROR: Expected string for {}: {:?}", f.tag, err);
+            None
         }
-    } else {
-        None
+    }
+}
+
+fn is_u32(f: &Field) -> Option<u32> {
+    match &f.value {
+        &Value::Long(ref v) if v.len() == 1 => Some(v[0]),
+        &Value::Short(ref v) if v.len() == 1 => Some(u32::from(v[0])),
+        v => {
+            println!("ERROR: Unsuppored value for {}: {:?}", f.tag, v);
+            None
+        }
     }
 }
 

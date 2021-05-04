@@ -26,7 +26,7 @@ impl Collection {
         self.basedir.join(&photo.path)
     }
 
-    pub fn save_photo(&self, contents: &[u8]) -> Result<(String, PathBuf)> {
+    pub fn save_photo(&self, contents: &[u8], story_name: &str) -> Result<(String, PathBuf)> {
         let ext = *image::guess_format(contents)?
             .extensions_str()
             .first()
@@ -40,37 +40,42 @@ impl Collection {
             .write(true)
             .open(path)?;
         file.write_all(contents)?;
-        self.index_photo(&filename, Some(contents))?;
+        self.index_photo(&filename, Some(contents), story_name)?;
         Ok((hash, filename))
     }
 
-    pub fn index_photo(&self, file_path: &Path, image_bytes: Option<&[u8]>) -> Result<()> {
+    pub fn index_photo(&self, file_path: &Path, image_bytes: Option<&[u8]>, story_name: &str) -> Result<()> {
         let image_vec = match image_bytes {
             Some(_) => vec![],
             None => std::fs::read(self.basedir.join(file_path))?
         };
         let image_bytes = image_bytes.unwrap_or(&image_vec);
         let ref db = self.pool.get()?;
-        let exif =
-            load_exif(&image_bytes).context("Failed reading exif data")?;
-        let width = exif.width.ok_or(anyhow!("Missing width"))?;
-        let height = exif.height.ok_or(anyhow!("Missing height"))?;
+        let exif = ExifData::read_from(&image_bytes).context("Failed reading exif data")?;
         let id = format!("{:x}", sha2::Sha256::digest(&image_bytes));
-        let mut thumbnail = std::io::Cursor::new(vec![]);
-        image::load_from_memory(&image_bytes)?
-            .thumbnail(256, 256)
-            .write_to(&mut thumbnail, image::ImageOutputFormat::Jpeg(80))?;
+        let mut thumbnail_buf = std::io::Cursor::new(vec![]);
+        let thumbnail = image::load_from_memory(&image_bytes)?
+            .thumbnail(256, 256);
+        // Rotate if necessary before saving
+        let thumbnail = match exif.rotation() {
+            Ok(90) | Ok(-270) => thumbnail.rotate90(),
+            Ok(180) | Ok(-180)  => thumbnail.rotate180(),
+            Ok(270) | Ok(-90) => thumbnail.rotate270(),
+            _ => thumbnail
+        };
+        thumbnail.write_to(&mut thumbnail_buf, image::ImageOutputFormat::Jpeg(80))?;
         match Photo::create_or_set_basics(
             db,
             &id,
             file_path
                 .to_str()
                 .ok_or(anyhow!("Invalid characters in filename"))?,
-            width as i32,
-            height as i32,
+            exif.width as i32,
+            exif.height as i32,
             exif.date(),
             exif.rotation()?,
-            &thumbnail.into_inner(),
+            &thumbnail_buf.into_inner(),
+            &story_name
         )? {
             Modification::Created(photo) => {
                 info!("Created #{}, {}", photo.id, photo.path);
@@ -111,36 +116,6 @@ impl Collection {
         }
         Ok(())
     }
-}
-
-/// Read EXIF data from a slice
-///
-/// This could be done with a reader but there's no reason to because we need
-/// to read the whole file for the hash anyway, and I think it's safe to assume
-/// it's smaller than memory
-fn load_exif(slice: &[u8]) -> Result<ExifData> {
-    let reader = std::io::Cursor::new(slice);
-    if let Ok(mut exif) = ExifData::read_from(reader) {
-        if exif.width.is_none() || exif.height.is_none() {
-            if let Ok((width, height)) = actual_image_size(slice) {
-                exif.width = Some(width);
-                exif.height = Some(height);
-            }
-        }
-        Ok(exif)
-    } else if let Ok((width, height)) = actual_image_size(slice) {
-        let mut meta = ExifData::default();
-        meta.width = Some(width);
-        meta.height = Some(height);
-        Ok(meta)
-    } else {
-        Err(anyhow!("Couldn't read Exif data"))
-    }
-}
-
-fn actual_image_size(image_slice: &[u8]) -> Result<(u32, u32), ImageError> {
-    let image = image::load_from_memory(&image_slice)?;
-    Ok((image.width(), image.height()))
 }
 
 #[derive(Debug)]

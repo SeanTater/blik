@@ -14,11 +14,22 @@ CREATE TABLE photos (
   attribution_id INT,
   width INT NOT NULL,
   height INT NOT NULL,
-  thumbnail BLOB NOT NULL
+  thumbnail BLOB NOT NULL,
+  story TEXT NOT NULL
 );
 
 CREATE INDEX photos_date_idx ON photos (date DESC);
 CREATE INDEX photos_grade_idx ON photos (grade DESC);
+CREATE INDEX photos_story_idx ON photos (story);
+
+--
+-- Story
+--
+CREATE TABLE story (
+  name TEXT NOT NULL PRIMARY KEY,
+  description TEXT,
+  created_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 --
 -- Tags
