@@ -1,12 +1,11 @@
 use super::urlstring::UrlString;
-use crate::models::{Photo, SizeTag};
+use crate::models::Photo;
 use chrono::Datelike;
 
 pub struct PhotoLink {
     pub title: Option<String>,
     pub href: String,
     pub id: String,
-    pub size: (u32, u32),
     pub label: Option<String>,
 }
 
@@ -107,7 +106,6 @@ impl PhotoLink {
                 title,
                 href: url.into(),
                 id: photo.id.clone(),
-                size: photo.get_size(SizeTag::Small),
                 label: Some(label),
             }
         }
@@ -117,7 +115,6 @@ impl PhotoLink {
             title: p.date.map(|d| d.format("%F").to_string()),
             href: format!("/photo/{}/thumbnail", p.id),
             id: p.id.clone(),
-            size: p.get_size(SizeTag::Small),
             label: p.date.map(|d| d.format("%T").to_string()),
         }
     }
@@ -126,11 +123,7 @@ impl PhotoLink {
             title: None, // p.date.map(|d| d.format("%F").to_string()),
             href: format!("/photo/{}/thumbnail", p.id),
             id: p.id.clone(),
-            size: p.get_size(SizeTag::Small),
             label: p.date.map(|d| d.format("%T").to_string()),
         }
-    }
-    pub fn is_portrait(&self) -> bool {
-        self.size.1 > self.size.0
     }
 }

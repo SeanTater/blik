@@ -7,7 +7,6 @@ use chrono::{naive::NaiveDateTime, Datelike};
 use diesel::prelude::*;
 use diesel::result::Error;
 use diesel::sqlite::{Sqlite, SqliteConnection};
-use std::cmp::max;
 
 #[derive(AsChangeset, Clone, Debug, Identifiable, Queryable)]
 pub struct Photo {
@@ -150,17 +149,6 @@ impl Photo {
         })
     }
 
-    pub fn get_size(&self, size: SizeTag) -> (u32, u32) {
-        let (width, height) = (self.width, self.height);
-        let scale = f64::from(size.px()) / f64::from(max(width, height));
-        let w = (scale * f64::from(width)) as u32;
-        let h = (scale * f64::from(height)) as u32;
-        match self.rotation {
-            _x @ 0..=44 | _x @ 315..=360 | _x @ 135..=224 => (w, h),
-            _ => (h, w),
-        }
-    }
-
     #[cfg(test)]
     pub fn mock(y: i32, mo: u32, da: u32, h: u32, m: u32, s: u32) -> Self {
         use chrono::naive::NaiveDate;
@@ -217,28 +205,4 @@ pub struct Story {
     pub name: String,
     pub description: String,
     pub created_on: Option<NaiveDateTime>,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum SizeTag {
-    Small,
-    Medium,
-    Large,
-}
-
-impl SizeTag {
-    pub fn px(self) -> u32 {
-        match self {
-            SizeTag::Small => 288,
-            SizeTag::Medium => 1080,
-            SizeTag::Large => 8192, // not really used
-        }
-    }
-    pub fn tag(self) -> char {
-        match self {
-            SizeTag::Small => 's',
-            SizeTag::Medium => 'm',
-            SizeTag::Large => 'l',
-        }
-    }
 }

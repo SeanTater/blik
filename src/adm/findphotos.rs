@@ -1,4 +1,4 @@
-use crate::collection::Collection;
+use crate::collection::{Collection, CollectionManager};
 use crate::DirOpt;
 use anyhow::Result;
 use std::path::Path;
@@ -16,25 +16,26 @@ pub struct Findphotos {
 
 impl Findphotos {
     pub fn run(&self) -> Result<()> {
-        let pd = Collection::new(
-            &self.photos.photos_dir,
-            crate::dbopt::create_pool()?,
-        );
+        let pd = Collection {
+            basedir: self.photos.photos_dir.clone(),
+        };
+        let conn = crate::dbopt::connect()?;
+        let manager = pd.manage(&conn);
         if !self.base.is_empty() {
             for base in &self.base {
-                crawl(&pd, Path::new(base))
+                crawl(&pd, &manager, Path::new(base))
                     .map_err(|e| anyhow!("Failed to crawl {}: {}", base, e))?;
             }
         } else {
-            crawl(&pd, Path::new(""))
+            crawl(&pd, &manager, Path::new(""))
                 .map_err(|e| anyhow!("Failed to crawl: {}", e))?;
         }
         Ok(())
     }
 }
 
-fn crawl(photos: &Collection, only_in: &Path) -> Result<()> {
-    photos.find_files(only_in, &|path| match photos.index_photo(path, None, "default") {
+fn crawl(collection: &Collection, manager: &CollectionManager, only_in: &Path) -> Result<()> {
+    collection.find_files(only_in, &|path| match manager.index_photo(path, None, "default") {
         Ok(()) => println!("Saved photo {}", path.display()),
         Err(e) => println!("Failed to save photo {}: {:?}", path.display(), e),
     })?;

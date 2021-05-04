@@ -1,6 +1,6 @@
 use super::LoggedIn;
 use super::{PhotoLink, RPhotosDB};
-use crate::models::{Photo, SizeTag};
+use crate::models::Photo;
 use crate::templates;
 use anyhow::Result;
 use diesel::dsl::sql;
@@ -29,7 +29,6 @@ pub fn timeline(
             href: format!("/photo/{}/details", photo.id),
             label: Some(String::new()),
             id: photo.id.clone(),
-            size: photo.get_size(SizeTag::Small),
         })
         .collect::<Vec<_>>();
     let mut out = std::io::Cursor::new(vec![]);

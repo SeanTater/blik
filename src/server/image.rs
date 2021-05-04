@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use super::{context::GlobalContext, LoggedIn, RPhotosDB};
-use crate::models::{Photo, Story};
+use crate::models::Photo;
 use anyhow::Result;
 use diesel::prelude::*;
 use rocket::response::{
@@ -20,7 +20,6 @@ pub fn thumbnail(
     use crate::schema::photos::dsl::photos;
     let db = db.0;
     let pho = photos.find(&id).first::<Photo>(&db)?;
-    //let pho_data = std::fs::read(&pho.path)?;
 
     Ok(Content(
         rocket::http::ContentType::JPEG,
@@ -60,7 +59,7 @@ pub fn upload(
     let mut messages = vec![];
     let mut success = true;
     let mut story: Option<String> = None;
-    while let Some(mut part) = parts.read_entry().ok()? {
+    while let Some(part) = parts.read_entry().ok()? {
         // This limits each image to 100MB but no limit for total images
         // This is intended for one user so as long as they are logged in,
         // So this should mostly reduce careless mistakes
@@ -106,7 +105,7 @@ pub fn upload(
                     ));
                 } else {
                     println!("Read image {} bytes long", image_buf.len());
-                    messages.push(match globe.collection.save_photo(&image_buf, &story_name) {
+                    messages.push(match globe.collection.manage(&db.0).save_photo(&image_buf, &story_name) {
                         Ok((id, path)) => {
                             format!("Saved image with ID {} to {}", id, path.display())
                         }

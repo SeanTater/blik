@@ -13,9 +13,10 @@ pub struct GlobalContext {
 
 impl GlobalContext {
     pub fn new(args: &Args) -> Self {
-        let pool = crate::dbopt::create_pool().expect("Sqlite pool");
         let gc = GlobalContext {
-            collection: Collection::new(&args.photos.photos_dir, pool),
+            collection: Collection{
+                basedir: args.photos.photos_dir.clone()
+            },
             open_token: Mutex::new(None),
         };
         let code = gc.generate_login_token(15);
