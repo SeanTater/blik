@@ -21,10 +21,14 @@
   </div>
   <div class="group">
     @for photo in photos {
-      <div class="card item">@if let Some(ref title) = photo.title {<h2>@title</h2>}
-        <a href="@photo.href"><img src="/photo/@photo.id/thumbnail" alt="Photo @photo.id"></a>
+      <label class="card item expandable">@if let Some(ref title) = photo.title {<h2>@title</h2>}
+        <input type="checkbox" class="hide">
+        <img src="/photo/@photo.id/thumbnail" alt="Photo @photo.id" />
         @if let Some(ref d) = photo.label {<span class="label">@d</span>}
-      </div>
+        <extra-drawer>
+          <lazy-img style="background-image: url(/photo/@photo.id)" />
+        </extra-drawer>
+      </label>
     }
   </div>
 })

@@ -262,3 +262,28 @@ form {
 .flash-failure {
     background: #fdd;
 }
+.hide {
+    visibility: hidden;
+}
+extra-drawer {
+    display: none;
+}
+input[type=checkbox]:checked ~ extra-drawer {
+    display: block;
+}
+lazy-img {
+    display: block;
+    height: 70vh;
+    // The image is a background because it can lazy load
+    // It's full screen and positioned so there is enough space to zoom in
+    background-color: #555;
+    background-repeat: no-repeat;
+    background-size: contain;
+    background-position: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 5;
+}

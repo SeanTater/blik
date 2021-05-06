@@ -1,5 +1,8 @@
 *~
 *.db
+*.tar.gz
 /.env
 /target
 /Cargo.lock
+/venv
+/notes

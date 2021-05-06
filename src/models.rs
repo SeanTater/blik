@@ -47,12 +47,17 @@ impl Photo {
             result.height = image.height() as i32;
         }
         let mut cursor = std::io::Cursor::new(image_slice);
-        let reader = Reader::new().read_from_container(&mut cursor)?;
-        let exif_map: HashMap<Tag, &Field> = reader
-            .fields()
-            .filter(|f| f.ifd_num == In::PRIMARY)
-            .filter_map(|f| Some((f.tag, f)))
-            .collect();
+        let exif_map = match Reader::new().read_from_container(&mut cursor) {
+            Ok(ex) => ex
+                .fields()
+                .filter(|f| f.ifd_num == In::PRIMARY)
+                .filter_map(|f| Some((f.tag, f.clone())))
+                .collect(),
+            Err(x) => {
+                log::warn!("Couldn't read EXIF: {}", x);
+                HashMap::new()
+            }
+        };
         result.date = exif_map.get(&Tag::DateTimeOriginal).and_then(|f| is_datetime(f))
             .or_else(|| is_datetime(exif_map.get(&Tag::DateTime)?))
             .or_else(|| is_datetime(exif_map.get(&Tag::DateTimeDigitized)?));
