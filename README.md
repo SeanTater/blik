@@ -1,22 +1,19 @@
-# rphotos
+# blik: Personal photo manager
+Blik is a photo manager web app (based on rphotos) with a few simple goals:
+* [x] Get started as easily as possible: based on SQLite, no databases to setup
+* [x] Upload from your phone or other device via a webapp
+* [x] Single user authentication: each server is for one person
+* [ ] Collect photos into stories so you can see stuff you took together
+* [ ] Caption images automatically
+* [ ] Recognize faces automatically
+* [ ] Share some images publically
+* [ ] Allow searching other's collections (when permitted)
 
-Semi-experimental web app in Rust language: manage my photos.
+Blik doesn't do some things:
+* Edit or retouch photos
+* Have any native application for iOS or Android or Linux or anything else
+* Have any connection to a cloud provider
+* Cost or bill you anything
 
-[![CI](https://github.com/kaj/rphotos/workflows/CI/badge.svg)](https://github.com/kaj/rphotos/actions)
-
-Tag photos with places, people and other tags, while keeping some
-private and making others public.
-It uses a postgresql database for the metadata, and works with
-read-only access to the actual image files.
-
-My images are on [img.krats.se](https://img.krats.se/) where you can
-see those that are public though rphotos.
-
-Not in any way feature-complete, but useful.  At least to me.
-
-There is not (yet) much documentation, but there is command line help
-(the single binary has subcommands for running the server and some
-administrative task, such a finding new photos or making photos
-public).
-The database is described in the migrations.
-Everything else is in the code.
+# Status
+Blik is not ready for users yet. There are still some major defects to work through to be usable.

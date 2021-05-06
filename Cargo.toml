@@ -1,7 +1,7 @@
 [package]
-name = "rphotos"
-version = "0.9.1-PRE"
-authors = ["Rasmus Kaj <kaj@kth.se>"]
+name = "blik"
+version = "0.1.0"
+authors = ["Sean Gallagher <stgallag@gmail.com>", "Rasmus Kaj <kaj@kth.se>"]
 edition = "2018"
 
 build = "src/build.rs"
