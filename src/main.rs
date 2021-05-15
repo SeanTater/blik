@@ -17,6 +17,7 @@ mod models;
 mod myexif;
 mod schema;
 mod server;
+mod template_utils;
 
 use crate::adm::stats::show_stats;
 use crate::adm::makepublic;

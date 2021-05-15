@@ -2,6 +2,7 @@
 @use crate::models::{Photo, Story};
 @use diesel::sqlite::SqliteConnection;
 @use rocket::request::FlashMessage;
+@use crate::template_utils::*;
 
 @(title: &str, flash: Option<FlashMessage>, db: &SqliteConnection)
 
@@ -19,10 +20,7 @@
   <div class="story">
     @for st in &Story::recent(db).unwrap_or(vec![]) {
       <div class="group">
-        <h2>@st.name</h2>
-        <p>
-          @st.description.as_ref().map(|x|x.as_ref()).unwrap_or("")
-        </p>
+        <h2>@st.description.str_or("Untitled")</h2>
         @for photo in st.related_photos(db).unwrap() {
           <label class="card item expandable">
             <input type="checkbox" class="hide">
