@@ -1,8 +1,9 @@
 @use super::base;
+@use diesel::sqlite::SqliteConnection;
 
-@(code: &str)
+@(db: &SqliteConnection, code: &str)
 
-@:base("invite", {}, {
+@:base(db, "invite", {}, {
     <p>
       You can use the code <code>@code</code> to login for the next 15 minutes.
       Please note that only one invitation is valid at any given time, for safety,

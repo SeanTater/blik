@@ -32,7 +32,7 @@ table! {
     story (name) {
         name -> Text,
         description -> Text,
-        created_on -> Nullable<Timestamp>,
+        created_on -> Timestamp,
     }
 }
 

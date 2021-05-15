@@ -1,7 +1,7 @@
 use crate::schema::{photos, story, annotation, thumbnail};
 use crate::schema::photos::dsl as p;
 use crate::schema::thumbnail::dsl as th;
-use chrono::naive::NaiveDateTime;
+use chrono::{Datelike, naive::NaiveDateTime};
 use diesel::prelude::*;
 use diesel::result::Error;
 use diesel::sqlite::{Sqlite, SqliteConnection};
@@ -195,9 +195,25 @@ pub trait Facet {
 pub struct Story {
     pub name: String,
     pub description: String,
-    pub created_on: Option<NaiveDateTime>,
+    pub created_on: NaiveDateTime,
 }
 impl Story {
+    pub fn all(db: &SqliteConnection) -> anyhow::Result<Vec<Story>> {
+        use crate::schema::story::dsl as st;
+        let stories = st::story
+            .order_by(st::created_on.desc())
+            .load(db)?;
+        Ok(stories)
+    }
+    pub fn by_year(db: &SqliteConnection, year: i32) -> anyhow::Result<Vec<Story>> {
+        use crate::schema::story::dsl as st;
+        let stories = st::story
+            .filter(st::created_on.ge(year.to_string()))
+            .filter(st::created_on.lt((year+1).to_string()))
+            .order_by(st::created_on.desc())
+            .load(db)?;
+        Ok(stories)
+    }
     pub fn recent(db: &SqliteConnection) -> anyhow::Result<Vec<Story>> {
         use crate::schema::story::dsl as st;
         let stories = st::story

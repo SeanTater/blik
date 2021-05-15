@@ -4,9 +4,9 @@
 @use rocket::request::FlashMessage;
 @use crate::template_utils::*;
 
-@(title: &str, flash: Option<FlashMessage>, db: &SqliteConnection)
+@(db: &SqliteConnection, title: &str, flash: Option<FlashMessage>)
 
-@:base(title, {}, {
+@:base(db, title, {}, {
   @for message in flash {
     <div class="card flash-message flash-@message.name()">@message.msg()</div>
   }

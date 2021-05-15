@@ -1,4 +1,4 @@
-use super::context::GlobalContext;
+use super::{RPhotosDB, context::GlobalContext};
 use crate::templates;
 use rocket::response::content::Html;
 use rocket::{
@@ -23,9 +23,9 @@ impl<'a, 'r> FromRequest<'a, 'r> for LoggedIn {
 
 /// An HTML login page
 #[get("/login")]
-pub fn get_login() -> Option<Html<Vec<u8>>> {
+pub fn get_login(db: RPhotosDB) -> Option<Html<Vec<u8>>> {
     let mut out = std::io::Cursor::new(vec![]);
-    templates::login(&mut out, None).ok()?;
+    templates::login(&mut out, &db.0, None).ok()?;
     Some(Html(out.into_inner()))
 }
 
@@ -58,10 +58,12 @@ pub fn logout(_user: LoggedIn, mut cookies: Cookies) -> Redirect {
 pub fn invite(
     _user: LoggedIn,
     globe: State<Arc<GlobalContext>>,
+    db: RPhotosDB,
 ) -> Option<Html<Vec<u8>>> {
     let mut out = std::io::Cursor::new(vec![]);
     templates::invite(
         &mut out,
+        &db.0,
         &globe.generate_login_token(15).to_string(),
     )
     .ok()?;
