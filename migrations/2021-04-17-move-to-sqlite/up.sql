@@ -48,7 +48,7 @@ BEGIN
     SET last_updated = CURRENT_TIMESTAMP,
         latest_photo = NEW.id,
         photo_count = photo_count + 1
-    WHERE story.name = NEW.story_name;
+    WHERE story.name = NEW.story;
 END;
 
 CREATE TRIGGER update_story_on_delete
@@ -58,12 +58,12 @@ BEGIN
     SET last_updated = CURRENT_TIMESTAMP,
         latest_photo = (
             SELECT id FROM photos
-            WHERE photos.story_name = OLD.story_name
+            WHERE photos.story = OLD.story
             ORDER BY date DESC
             LIMIT 1
         ),
         photo_count = photo_count - 1
-    WHERE story.name = OLD.story_name;
+    WHERE story.name = OLD.story;
 END;
 
 --
