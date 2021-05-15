@@ -33,6 +33,9 @@ table! {
         name -> Text,
         description -> Text,
         created_on -> Timestamp,
+        last_updated -> Timestamp,
+        latest_photo -> Nullable<Text>,
+        photo_count -> Integer,
     }
 }
 

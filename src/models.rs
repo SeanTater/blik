@@ -196,6 +196,9 @@ pub struct Story {
     pub name: String,
     pub description: String,
     pub created_on: NaiveDateTime,
+    pub last_updated: NaiveDateTime,
+    pub latest_photo: Option<String>,
+    pub photo_count: i32
 }
 impl Story {
     pub fn all(db: &SqliteConnection) -> anyhow::Result<Vec<Story>> {
