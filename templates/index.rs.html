@@ -12,15 +12,15 @@
   }
   <div class="card compose">
     <form action="/photo" method="POST"  enctype="multipart/form-data">
-      <textarea name="description">Create a new story</textarea>
+      <textarea name="description" placeholder="Create a new story"></textarea>
       <input type="file" name="image" accept="image/*,video/*" multiple />
       <button>Upload</button>
     </form>
   </div>
-  <div class="story">
-    @for st in &Story::recent(db).unwrap_or(vec![]) {
+  @for st in &Story::recent(db).unwrap_or(vec![]) {
+    <div class="story">
+      <h2>@st.description</h2>
       <div class="group">
-        <h2>@st.description.str_or("Untitled")</h2>
         @for photo in st.related_photos(db).unwrap() {
           <label class="card item expandable">
             <input type="checkbox" class="hide">
@@ -31,6 +31,6 @@
           </label>
         }
       </div>
-    }
-  </div>
+    </div>
+  }
 })

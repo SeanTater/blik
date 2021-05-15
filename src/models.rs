@@ -194,7 +194,7 @@ pub trait Facet {
 #[table_name = "story"]
 pub struct Story {
     pub name: String,
-    pub description: Option<String>,
+    pub description: String,
     pub created_on: Option<NaiveDateTime>,
 }
 impl Story {

@@ -34,7 +34,7 @@ CREATE TABLE thumbnail (
 --
 CREATE TABLE story (
   name TEXT NOT NULL PRIMARY KEY,
-  description TEXT,
+  description TEXT NOT NULL,
   created_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

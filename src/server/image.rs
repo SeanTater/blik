@@ -75,7 +75,13 @@ pub fn upload(
                 //
                 if part.headers.name.as_ref() == "description" {
                     use crate::schema::story::dsl as story_dsl;
-                    let description = String::from_utf8(image_slice).ok()?;
+                    let description = String::from_utf8(image_slice)
+                        .ok()
+                        .filter(|desc| !desc.trim().is_empty())
+                        .unwrap_or_else(|| {
+                            // Create a halfway decent title
+                            chrono::Local::now().format("Uploaded %B %e, %Y").to_string()
+                        });
                     let name = description.split("\n").next().unwrap_or("");
                     let name = slug::slugify(&name[..name.len().min(50)]);
                     diesel::insert_or_ignore_into(story_dsl::story)
