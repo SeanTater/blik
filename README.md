@@ -3,7 +3,7 @@ Blik is a photo manager web app (based on rphotos) with a few simple goals:
 * [x] Get started as easily as possible: based on SQLite, no databases to setup
 * [x] Upload from your phone or other device via a webapp
 * [x] Single user authentication: each server is for one person
-* [ ] Collect photos into stories so you can see stuff you took together
+* [x] Collect photos into stories so you can see stuff you took together
 
 ## We also have some lofty goals:
 * [ ] Caption images automatically
