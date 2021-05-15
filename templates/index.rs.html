@@ -1,14 +1,11 @@
 @use super::base;
-@use crate::server::PhotoLink;
+@use crate::models::{Photo, Story};
+@use diesel::sqlite::SqliteConnection;
 @use rocket::request::FlashMessage;
 
-@(title: &str, photos: &[PhotoLink], flash: Option<FlashMessage>)
+@(title: &str, flash: Option<FlashMessage>, db: &SqliteConnection)
 
-@:base(title, {
-  <meta property='og:title' content='@title'>
-    @for img in photos {
-    <meta property='og:image' content='/img/@img.id-m.jpg' />}
-  }, {
+@:base(title, {}, {
   @for message in flash {
     <div class="card flash-message flash-@message.name()">@message.msg()</div>
   }
@@ -19,16 +16,23 @@
       <button>Upload</button>
     </form>
   </div>
-  <div class="group">
-    @for photo in photos {
-      <label class="card item expandable">@if let Some(ref title) = photo.title {<h2>@title</h2>}
-        <input type="checkbox" class="hide">
-        <img src="/photo/@photo.id/thumbnail" alt="Photo @photo.id" />
-        @if let Some(ref d) = photo.label {<span class="label">@d</span>}
-        <extra-drawer>
-          <lazy-img style="background-image: url(/photo/@photo.id)" />
-        </extra-drawer>
-      </label>
+  <div class="story">
+    @for st in &Story::recent(db).unwrap_or(vec![]) {
+      <div class="group">
+        <h2>@st.name</h2>
+        <p>
+          @st.description.as_ref().map(|x|x.as_ref()).unwrap_or("")
+        </p>
+        @for photo in st.related_photos(db).unwrap() {
+          <label class="card item expandable">
+            <input type="checkbox" class="hide">
+            <img src="/photo/@photo.id/thumbnail" alt="Photo @photo.id" />
+            <extra-drawer>
+              <lazy-img style="background-image: url(/photo/@photo.id)" />
+            </extra-drawer>
+          </label>
+        }
+      </div>
     }
   </div>
 })

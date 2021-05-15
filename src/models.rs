@@ -1,4 +1,4 @@
-use crate::schema::photos;
+use crate::schema::{photos, story, annotation, thumbnail};
 use crate::schema::photos::dsl as p;
 use crate::schema::thumbnail::dsl as th;
 use chrono::naive::NaiveDateTime;
@@ -9,8 +9,8 @@ use image::{DynamicImage, GenericImageView};
 use std::{collections::HashMap,  io::Write, path::Path};
 use sha2::Digest;
 use anyhow::Result;
-
-#[derive(AsChangeset, Clone, Debug, Identifiable, Insertable, Queryable, Default)]
+#[derive(AsChangeset, Clone, Debug, Identifiable, Insertable, Queryable, QueryableByName, Default)]
+#[table_name = "photos"]
 pub struct Photo {
     pub id: String,
     pub path: String,
@@ -102,24 +102,6 @@ impl Photo {
         Ok(result)
     }
 
-    #[allow(dead_code)]
-    pub fn is_public(&self) -> bool {
-        self.is_public
-    }
-
-    #[allow(dead_code)]
-    pub fn query<'a>(auth: bool) -> photos::BoxedQuery<'a, Sqlite> {
-        let result = p::photos
-            .filter(p::path.not_like("%.CR2"))
-            .filter(p::path.not_like("%.dng"))
-            .into_boxed();
-        if !auth {
-            result.filter(p::is_public)
-        } else {
-            result
-        }
-    }
-
     pub fn exists(
         &self,
         db: &SqliteConnection
@@ -208,20 +190,40 @@ pub trait Facet {
         Self: Sized;
 }
 
-#[derive(Debug, Clone, Queryable)]
+#[derive(Clone, Debug, Queryable, QueryableByName)]
+#[table_name = "story"]
 pub struct Story {
     pub name: String,
-    pub description: String,
+    pub description: Option<String>,
     pub created_on: Option<NaiveDateTime>,
 }
+impl Story {
+    pub fn recent(db: &SqliteConnection) -> anyhow::Result<Vec<Story>> {
+        use crate::schema::story::dsl as st;
+        let stories = st::story
+            .order_by(st::created_on.desc())
+            .limit(20)
+            .load(db)?;
+        Ok(stories)
+    }
 
-#[derive(Debug, Clone, Queryable)]
+    pub fn related_photos(&self, db: &SqliteConnection) -> anyhow::Result<Vec<Photo>> {
+        let photos = p::photos
+            .filter(p::story.eq(&self.name))
+            .load(db)?;
+        Ok(photos)
+    }
+}
+
+#[derive(Debug, Clone, Queryable, QueryableByName)]
+#[table_name = "thumbnail"]
 pub struct Thumbnail {
     pub id: String,
     pub content: Vec<u8>,
 }
 
-#[derive(Debug, Clone, Queryable)]
+#[derive(Debug, Clone, Queryable, QueryableByName)]
+#[table_name = "annotation"]
 pub struct Annotation {
     pub photo_id: String,
     pub name: String,
