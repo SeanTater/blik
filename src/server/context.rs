@@ -1,6 +1,7 @@
 use super::Args;
 use crate::collection::Collection;
 use chrono::{DateTime, Utc};
+use rand::prelude::Distribution;
 use std::sync::Mutex;
 
 // Does _not_ derive debug, copy or clone, since it contains the jwt
@@ -15,7 +16,12 @@ impl GlobalContext {
     pub fn new(args: &Args) -> Self {
         let gc = GlobalContext {
             collection: Collection{
-                basedir: args.photos.photos_dir.clone()
+                basedir: args.photos.blik_home
+                    .as_ref()
+                    .cloned()
+                    .or_else(|| std::env::current_dir().ok())
+                    .expect("blik_home not specified on the command line, or in the environment, \
+                            and the PWD is not accessible either. I have nowhere to store photos.")
             },
             open_token: Mutex::new(None),
         };
@@ -26,7 +32,8 @@ impl GlobalContext {
 
     /// Generate a new login token that expires in a few minutes
     pub fn generate_login_token(&self, ttl_minutes: usize) -> u32 {
-        let code = rand::random();
+        let sampler = rand::distributions::Uniform::new(0, 1000000);
+        let code = sampler.sample(&mut rand::thread_rng());
         let ttl_minutes = ttl_minutes.min(24 * 60) as i64 * 60;
         let ttl_minutes = chrono::Duration::minutes(ttl_minutes);
         *self.open_token.lock().unwrap() = Some((

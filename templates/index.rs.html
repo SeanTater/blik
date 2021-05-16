@@ -4,33 +4,45 @@
 @use rocket::request::FlashMessage;
 @use crate::template_utils::*;
 
-@(db: &SqliteConnection, title: &str, flash: Option<FlashMessage>)
+@(db: &SqliteConnection, flash: Option<FlashMessage>)
 
-@:base(db, title, {}, {
-  @for message in flash {
-    <div class="card flash-message flash-@message.name()">@message.msg()</div>
-  }
-  <div class="card compose">
-    <form action="/photo" method="POST"  enctype="multipart/form-data">
-      <textarea name="description" placeholder="Create a new story"></textarea>
-      <input type="file" name="image" accept="image/*,video/*" multiple />
-      <button>Upload</button>
-    </form>
-  </div>
-  @for st in &Story::recent(db).unwrap_or(vec![]) {
-    <div class="story">
-      <h2>@st.description</h2>
-      <div class="group">
-        @for photo in st.related_photos(db).unwrap() {
-          <label class="card item expandable">
-            <input type="checkbox" class="hide">
-            <img src="/photo/@photo.id/thumbnail" alt="Photo @photo.id" />
-            <extra-drawer>
-              <lazy-img style="background-image: url(/photo/@photo.id)" />
-            </extra-drawer>
-          </label>
-        }
-      </div>
-    </div>
-  }
+@:base(db, "Timeline", {}, {
+    @for message in flash {
+        <div class="card flash-message flash-@message.name()">@message.msg()</div>
+    }
+    @for story in &Story::recent(db).unwrap_or(vec![]) {
+        <div class="email-content">
+            <div class="email-content-header pure-g">
+                <div class="pure-u-1-2">
+                    <h1 class="email-content-title">@story.title</h1>
+                    <p class="email-content-subtitle">
+                        From <a>Tilo Mitra</a> at <span>@story.last_updated</span>
+                    </p>
+                </div>
+
+                <div class="email-content-controls pure-u-1-2">
+                    <!-- <button class="secondary-button pure-button">Reply</button>
+                    <button class="secondary-button pure-button">Forward</button>
+                    <button class="secondary-button pure-button">Move to</button> -->
+                </div>
+            </div>
+
+            <div class="email-content-body">
+                <p>
+                    @story.description
+                </p>
+                <photo-deck>
+                    @for photo in story.related_photos(db).unwrap_or_default().iter().take(10) {
+                        <label class="card item expandable">
+                            <input type="checkbox" class="hide">
+                            <img src="/photo/@photo.id/thumbnail" alt="Photo @photo.id" />
+                            <extra-drawer>
+                                <lazy-img style="background-image: url(/photo/@photo.id)" />
+                            </extra-drawer>
+                        </label>
+                    }
+                </photo-deck>
+            </div>
+        </div>
+    }
 })

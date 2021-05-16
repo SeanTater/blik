@@ -31,6 +31,7 @@ table! {
 table! {
     story (name) {
         name -> Text,
+        title -> Text,
         description -> Text,
         created_on -> Timestamp,
         last_updated -> Timestamp,

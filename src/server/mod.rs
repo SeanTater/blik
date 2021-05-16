@@ -1,12 +1,11 @@
 mod image;
 mod login;
-mod photolink;
 mod urlstring;
 mod timeline;
 mod context;
+mod story;
 
 pub use self::login::LoggedIn;
-pub use self::photolink::PhotoLink;
 use self::context::GlobalContext;
 use super::DirOpt;
 use crate::templates;
@@ -23,8 +22,8 @@ pub struct Args {
     #[structopt(flatten)]
     photos: DirOpt,
 }
-#[database("rphotosdb")]
-pub struct RPhotosDB(SqliteConnection);
+#[database("blikdb")]
+pub struct BlikDB(SqliteConnection);
 
 pub async fn run(args: &Args) -> anyhow::Result<()> {
     rocket::ignite()
@@ -40,13 +39,15 @@ pub async fn run(args: &Args) -> anyhow::Result<()> {
                 self::image::thumbnail,
                 self::image::full,
                 self::image::upload,
+                self::story::create,
+                self::story::summary,
                 self::static_file,
             ],
         )
         //.mount("/static", rocket_contrib::serve::StaticFiles::from(concat!(env!("CARGO_MANIFEST_DIR"), "/res")))
         .manage(Arc::new(GlobalContext::new(args)))
         .attach(rocket_contrib::helmet::SpaceHelmet::default())
-        .attach(RPhotosDB::fairing())
+        .attach(BlikDB::fairing())
         .launch();
     Ok(())
 }

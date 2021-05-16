@@ -30,7 +30,7 @@ use structopt::StructOpt;
 /// Command line interface for rphotos.
 #[derive(StructOpt)]
 #[structopt(rename_all = "kebab-case")]
-enum RPhotos {
+enum Blik {
     /// Make specific image(s) public.
     ///
     /// The image path(s) are relative to the image root.
@@ -45,15 +45,15 @@ enum RPhotos {
 #[structopt(rename_all = "kebab-case")]
 struct DirOpt {
     /// Path to the root directory storing all actual photos.
-    #[structopt(long, env = "RPHOTOS_DIR")]
-    photos_dir: PathBuf,
+    #[structopt(long, env = "BLIK_HOME")]
+    blik_home: Option<PathBuf>,
 }
 
 #[tokio::main]
 async fn main() {
     dotenv().ok();
     env_logger::init();
-    match run(&RPhotos::from_args()).await {
+    match run(&Blik::from_args()).await {
         Ok(()) => (),
         Err(err) => {
             println!("{}", err);
@@ -62,11 +62,11 @@ async fn main() {
     }
 }
 
-async fn run(args: &RPhotos) -> Result<()> {
+async fn run(args: &Blik) -> Result<()> {
     match args {
-        RPhotos::Makepublic(cmd) => cmd.run(),
-        RPhotos::Stats => show_stats(&dbopt::connect()?),
-        RPhotos::Runserver(ra) => server::run(ra).await,
+        Blik::Makepublic(cmd) => cmd.run(),
+        Blik::Stats => show_stats(&dbopt::connect()?),
+        Blik::Runserver(ra) => server::run(ra).await,
     }
 }
 

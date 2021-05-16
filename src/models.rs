@@ -1,12 +1,12 @@
 use crate::schema::{photos, story, annotation, thumbnail};
 use crate::schema::photos::dsl as p;
 use crate::schema::thumbnail::dsl as th;
-use chrono::{Datelike, naive::NaiveDateTime};
+use chrono::naive::NaiveDateTime;
 use diesel::prelude::*;
 use diesel::result::Error;
-use diesel::sqlite::{Sqlite, SqliteConnection};
+use diesel::sqlite::SqliteConnection;
 use image::{DynamicImage, GenericImageView};
-use std::{collections::HashMap,  io::Write, path::Path};
+use std::{collections::HashMap, f32::consts::SQRT_2, io::Write, path::Path};
 use sha2::Digest;
 use anyhow::Result;
 #[derive(AsChangeset, Clone, Debug, Identifiable, Insertable, Queryable, QueryableByName, Default)]
@@ -190,10 +190,11 @@ pub trait Facet {
         Self: Sized;
 }
 
-#[derive(Clone, Debug, Queryable, QueryableByName)]
+#[derive(Clone, Debug, Insertable, Queryable, QueryableByName)]
 #[table_name = "story"]
 pub struct Story {
     pub name: String,
+    pub title: String,
     pub description: String,
     pub created_on: NaiveDateTime,
     pub last_updated: NaiveDateTime,
@@ -201,6 +202,29 @@ pub struct Story {
     pub photo_count: i32
 }
 impl Story {
+    /// Create a new story by name and description with otherwise default attributes
+    /// This doesn't save the story to a database
+    pub fn new(name: String, title: String, description: String) -> Story {
+        let now = chrono::Local::now().naive_local();
+        Story {
+            name, title, description,
+            created_on: now,
+            last_updated: now,
+            latest_photo: None,
+            photo_count: 0
+        }
+    }
+
+    /// Save this story to the database.
+    pub fn save(&self, db: &SqliteConnection) -> anyhow::Result<()> {
+        use crate::schema::story::dsl as st;
+        diesel::insert_or_ignore_into(st::story)
+            .values(self)
+            .execute(db)?;
+        Ok(())
+    }
+
+    /// Get all the stories from the database
     pub fn all(db: &SqliteConnection) -> anyhow::Result<Vec<Story>> {
         use crate::schema::story::dsl as st;
         let stories = st::story
@@ -208,6 +232,8 @@ impl Story {
             .load(db)?;
         Ok(stories)
     }
+
+    /// Get the stories associated with just one year
     pub fn by_year(db: &SqliteConnection, year: i32) -> anyhow::Result<Vec<Story>> {
         use crate::schema::story::dsl as st;
         let stories = st::story
@@ -217,6 +243,8 @@ impl Story {
             .load(db)?;
         Ok(stories)
     }
+
+    /// Get the most recent 20 stories from the database
     pub fn recent(db: &SqliteConnection) -> anyhow::Result<Vec<Story>> {
         use crate::schema::story::dsl as st;
         let stories = st::story
@@ -226,11 +254,18 @@ impl Story {
         Ok(stories)
     }
 
+    /// Get photos related to this story
     pub fn related_photos(&self, db: &SqliteConnection) -> anyhow::Result<Vec<Photo>> {
         let photos = p::photos
             .filter(p::story.eq(&self.name))
             .load(db)?;
         Ok(photos)
+    }
+
+    /// Check if there is a story by that name (for uploading photos attached to it)
+    pub fn by_name(db: &SqliteConnection, name: &str) -> anyhow::Result<Story> {
+        use crate::schema::story::dsl as st;
+        Ok(st::story.find(name).first::<Story>(db)?)
     }
 }
 

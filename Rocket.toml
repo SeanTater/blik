@@ -1,5 +1,5 @@
 [global.databases]
-rphotosdb = { url = "rphotos.db" }
+blikdb = { url = "blik.db" }
 
 [development]
 secret_key = "EK4oAEmwIik4uuMZiNywe+oZE1ankZosrs87z1Bw0jk="
