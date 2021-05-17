@@ -18,4 +18,18 @@ Blik is a photo manager web app (based on rphotos) with a few simple goals:
 * Cost or bill you anything
 
 ## Status
-Blik is not ready for users yet. There are still some major defects to work through to be usable.
+Blik serves some of my purposes already, and it's pretty fast and stable.
+However there are big things it doesn't support yet, like videos. We're working on that.
+We also haven't done any of the cool gizmos yet.
+
+## Get started
+
+```sh
+cd a/new/folder/where/you/want/your/photos
+blik webserver
+```
+
+**Just running it should do the trick**
+It will set up databases and configuration automatically in the current directory.
+In most cases it should take a fraction of a second and even open up your web browser.
+To log in the first time just use the code it prints out and you should be on your way!
