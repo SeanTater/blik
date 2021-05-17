@@ -27,6 +27,8 @@ pub struct Args {
 pub struct BlikDB(SqliteConnection);
 
 pub async fn run(args: &Args) -> anyhow::Result<()> {
+    let globe = GlobalContext::new(args);
+
     if !Path::new("Rocket.toml").exists() {
         println!("Blik is unconfigured. Generating a new configuration automatically.");
         let code: Vec<u8> = (0..32).into_iter().map(|_| rand::random()).collect();
@@ -68,7 +70,8 @@ secret_key = \"{code}\"
         println!("Running migrations to setup your new database.");
         crate::dbopt::initial_setup()?;
         println!("Done! You can see your new app at localhost:8000.");
-        match webbrowser::open("http://localhost:8000/") {
+        let url = format!("http://localhost:8000/login/{}", globe.generate_login_token(15));
+        match webbrowser::open(&url) {
             Ok(_) => println!("Your browser should open in just a sec!"),
             Err(x) => println!("Couldn't launch your browser, sorry. {}", x)
         }
@@ -79,6 +82,7 @@ secret_key = \"{code}\"
             routes![
                 need_to_login,
                 self::login::get_login,
+                self::login::login_via_url,
                 self::login::post_login,
                 self::login::logout,
                 self::login::invite,
@@ -91,7 +95,7 @@ secret_key = \"{code}\"
                 self::static_file,
             ],
         )
-        .manage(Arc::new(GlobalContext::new(args)))
+        .manage(Arc::new(globe))
         .attach(rocket_contrib::helmet::SpaceHelmet::default())
         .attach(BlikDB::fairing())
         .launch();

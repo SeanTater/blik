@@ -23,9 +23,9 @@ impl<'a, 'r> FromRequest<'a, 'r> for LoggedIn {
 
 /// An HTML login page
 #[get("/login")]
-pub fn get_login(db: BlikDB) -> Option<Html<Vec<u8>>> {
+pub fn get_login() -> Option<Html<Vec<u8>>> {
     let mut out = std::io::Cursor::new(vec![]);
-    templates::login(&mut out, &db.0, None).ok()?;
+    templates::login(&mut out).ok()?;
     Some(Html(out.into_inner()))
 }
 
@@ -42,6 +42,19 @@ pub fn post_login(
 ) -> rocket::response::Redirect {
     let code = loginform.code.parse().unwrap_or(0);
     if globe.use_login_token(code) {
+        // Login successful
+        cookies.add_private(Cookie::new("AUTH", ""));
+    }
+    rocket::response::Redirect::to("/")
+}
+
+#[get("/login/<code>")]
+pub fn login_via_url(
+    mut cookies: Cookies,
+    globe: State<Arc<GlobalContext>>,
+    code: String
+) -> rocket::response::Redirect {
+    if globe.use_login_token(code.parse().unwrap_or(0)) {
         // Login successful
         cookies.add_private(Cookie::new("AUTH", ""));
     }

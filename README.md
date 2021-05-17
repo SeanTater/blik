@@ -29,7 +29,8 @@ cd a/new/folder/where/you/want/your/photos
 blik webserver
 ```
 
-**Just running it should do the trick**
+**Just running it should do the trick.**
 It will set up databases and configuration automatically in the current directory.
-In most cases it should take a fraction of a second and even open up your web browser.
-To log in the first time just use the code it prints out and you should be on your way!
+In most cases it should take a fraction of a second and even open up your web browser,
+logging you in automatically. However, if you use a package manager or a container
+you may need to type in a code the first time to log in.

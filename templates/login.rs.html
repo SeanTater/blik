@@ -1,17 +1,51 @@
 @use super::base;
-@use diesel::sqlite::SqliteConnection;
+@use super::statics::*;
 
-@(db: &SqliteConnection, message: Option<&str>)
+@()
 
-@:base(db, "login", {}, {
-    <form action="/login" method="post">
-      @if let Some(message) = message {<p>@message</p>}
-      <p>
-        <label for="code">Login Code:</label>
-	      <input id="code" name="code">
-      </p>
-      <p>
-	      <input type="submit" value="Log in">
-      </p>
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Blik: Easy photo manager.">
+    <title>Blik &ndash; Login</title>
+    <link rel="stylesheet" href="/static/@pure_min_css.name">
+    <link rel="stylesheet" href="/static/@layout_css.name">
+    <link rel="stylesheet" href="/static/@photos_css.name">
+</head>
+<body class="pure-g">
+    <div class="pure-u-1-4"></div>
+    <form action="/login" method="post" class="pure-g pure-u-1-2 pure-form pure-form-stacked">
+        <fieldset>
+            <legend><h1>Login to access your Blik stories</h1></legend>
+            <label for="code" class="pure-u-1-2">Login Code</label>
+            <input id="code" name="code" class="pure-input-1-2" />
+            <button class="pure-button pure-button-primary" type="submit"> Get started! </button>
+        </fieldset>
+        <legend>
+            <h2> Can't find the token?</h2>
+            <p>
+                Typically when you start Blik, it will launch your web browser and log
+                you in instantly. That doesn't always work if you install it as a different user,
+                like when you install with <code>pacman</code> or inside <code>docker</code>.
+                In that case, it will print out a code for you to login with, which you enter here.
+                The token only lasts 15 minutes, but if you missed it, just restart
+                Blik to get a new one.
+            </p>
+            <h2> Adding a new device? </h2>
+            <p>
+                Once you have logged in on one device, it will remain logged in for 6 months unless
+                you reset the Blik secret (which logs everyone out). You can use any already
+                logged in device to add another device, so it usually takes just a few seconds.
+            </p>
+            <p>
+                There are no passwords in Blik. Instead, you get single-use tokens that last 15
+                minutes. At some point we may add users but mostly it's not necessary because
+                starting a new Blik server only takes a few seconds anyway.
+            </p>
+        </legend>
     </form>
-})
+    <div class="pure-u-1-4"></div>
+</body>
+</html>
