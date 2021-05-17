@@ -6,7 +6,7 @@ use diesel::prelude::*;
 use diesel::result::Error;
 use diesel::sqlite::SqliteConnection;
 use image::{DynamicImage, GenericImageView};
-use std::{collections::HashMap, f32::consts::SQRT_2, io::Write, path::Path};
+use std::{collections::HashMap, io::Write, path::Path};
 use sha2::Digest;
 use anyhow::Result;
 #[derive(AsChangeset, Clone, Debug, Identifiable, Insertable, Queryable, QueryableByName, Default)]

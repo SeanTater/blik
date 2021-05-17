@@ -9,6 +9,8 @@ extern crate rocket;
 extern crate rocket_contrib;
 #[macro_use]
 extern crate anyhow;
+#[macro_use]
+extern crate diesel_migrations;
 
 mod adm;
 mod collection;

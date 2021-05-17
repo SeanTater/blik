@@ -1,8 +1,6 @@
 use crate::models::Photo;
 use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
-use std::io;
-use tokio::task::JoinError;
 
 pub struct Collection {
     pub basedir: PathBuf,

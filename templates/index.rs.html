@@ -16,7 +16,7 @@
                 <div class="pure-u-1-2">
                     <h1 class="email-content-title">@story.title</h1>
                     <p class="email-content-subtitle">
-                        From <a>Tilo Mitra</a> at <span>@story.last_updated</span>
+                        Last updated <span>@story.last_updated</span>
                     </p>
                 </div>
 
@@ -31,6 +31,7 @@
                 <p>
                     @story.description
                 </p>
+                <h4>@story.photo_count photos</h4>
                 <photo-deck>
                     @for photo in story.related_photos(db).unwrap_or_default().iter().take(10) {
                         <label class="card item expandable">

@@ -32,6 +32,9 @@ rocket = "0.4"
 rocket_contrib = { version = "0.4", features=["helmet", "diesel_sqlite_pool"] }
 multipart = "0.17"
 itertools = "0.10.0"
+base64 = "0.13.0"
+diesel_migrations = "1.4" # We use this to bundle the migrations with the binary
+webbrowser = "0.5"
 
 [dependencies.diesel]
 default-features = false

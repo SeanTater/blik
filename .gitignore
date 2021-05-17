@@ -1,6 +1,8 @@
 *~
 *.db
 *.tar.gz
+*.jpg
+*.jpeg
 /.env
 /target
 /Cargo.lock

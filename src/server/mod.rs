@@ -13,9 +13,10 @@ use diesel::prelude::*;
 use rocket::http::ContentType;
 use rocket::response::Content;
 use rocket::response::Redirect;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use structopt::StructOpt;
+
 #[derive(StructOpt)]
 #[structopt(rename_all = "kebab-case")]
 pub struct Args {
@@ -26,6 +27,52 @@ pub struct Args {
 pub struct BlikDB(SqliteConnection);
 
 pub async fn run(args: &Args) -> anyhow::Result<()> {
+    if !Path::new("Rocket.toml").exists() {
+        println!("Blik is unconfigured. Generating a new configuration automatically.");
+        let code: Vec<u8> = (0..32).into_iter().map(|_| rand::random()).collect();
+        let code = base64::encode(code);
+        
+        // Write a new Rocket.toml that configures the database locations and keeps the secret keys static
+        println!("Writing a new Rocket.toml to handle the secret key for your server.");
+        println!("Your new metadata database will be in blik.db. As of 0.1.0 this is not yet configurable.");
+        std::fs::write(Path::new("Rocket.toml"), format!("[global.databases]
+# This is the location of the metadata database. By convention it is always blik.db so don't change it
+blikdb = {{ url = \"blik.db\" }}
+
+[production]
+# These secret keys are automatically generated random 256 bit numbers as base64
+# They are stored here so when blik restarts, the cookies it made will be encrypted with the same
+# keys. Otherwise everyone would be logged out when blik restarts.
+# For the same effect (e.g. if your token was compromised) you can change this key, which will log
+# everyone out. When blik starts again it will print to the terminal a new token to log in with. 
+
+secret_key = \"{code}\"
+
+# Rocket has attractive and comprehensive documentation about the settings available here:
+# https://rocket.rs/v0.4/guide/configuration/#extras
+# But in most cases these two settings are what you would want to override:
+# address = \"0.0.0.0\"  # by default, listen everwhere
+# port = 8000            # listen on port 8000
+
+
+# In most cases you will use production mode so you don't need to use the following sections.
+# But they are almost exactly the same as the production section, and you select which one
+# using the ROCKET_ENV variable. For example `ROCKET_ENV=staging blik` would use staging, but just
+# `blik` will use production.
+[development]
+secret_key = \"{code}\"
+[staging]
+secret_key = \"{code}\"
+
+", code=code))?;
+        println!("Running migrations to setup your new database.");
+        crate::dbopt::initial_setup()?;
+        println!("Done! You can see your new app at localhost:8000.");
+        match webbrowser::open("http://localhost:8000/") {
+            Ok(_) => println!("Your browser should open in just a sec!"),
+            Err(x) => println!("Couldn't launch your browser, sorry. {}", x)
+        }
+    }
     rocket::ignite()
         .mount(
             "/",
@@ -44,7 +91,6 @@ pub async fn run(args: &Args) -> anyhow::Result<()> {
                 self::static_file,
             ],
         )
-        //.mount("/static", rocket_contrib::serve::StaticFiles::from(concat!(env!("CARGO_MANIFEST_DIR"), "/res")))
         .manage(Arc::new(GlobalContext::new(args)))
         .attach(rocket_contrib::helmet::SpaceHelmet::default())
         .attach(BlikDB::fairing())
