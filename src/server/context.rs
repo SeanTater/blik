@@ -25,8 +25,6 @@ impl GlobalContext {
             },
             open_token: Mutex::new(None),
         };
-        let code = gc.generate_login_token(15);
-        println!("You can login with code {} in the next 15 minutes", code);
         gc
     }
 

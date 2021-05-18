@@ -35,8 +35,6 @@ pub async fn run(args: &Args) -> anyhow::Result<()> {
         let code = base64::encode(code);
         
         // Write a new Rocket.toml that configures the database locations and keeps the secret keys static
-        println!("Writing a new Rocket.toml to handle the secret key for your server.");
-        println!("Your new metadata database will be in blik.db. As of 0.1.0 this is not yet configurable.");
         std::fs::write(Path::new("Rocket.toml"), format!("[global.databases]
 # This is the location of the metadata database. By convention it is always blik.db so don't change it
 blikdb = {{ url = \"blik.db\" }}
@@ -67,14 +65,16 @@ secret_key = \"{code}\"
 secret_key = \"{code}\"
 
 ", code=code))?;
-        println!("Running migrations to setup your new database.");
         crate::dbopt::initial_setup()?;
         println!("Done! You can see your new app at localhost:8000.");
         let url = format!("http://localhost:8000/login/{}", globe.generate_login_token(15));
         match webbrowser::open(&url) {
-            Ok(_) => println!("Your browser should open in just a sec!"),
-            Err(x) => println!("Couldn't launch your browser, sorry. {}", x)
+            Ok(_) => println!("Your browser should open to {} in just a sec!", url),
+            Err(x) => println!("Couldn't launch your browser. Please navigate to {}", url)
         }
+    } else {
+        let code = globe.generate_login_token(15);
+        println!("You can login with code {} in the next 15 minutes", code);
     }
     rocket::ignite()
         .mount(
