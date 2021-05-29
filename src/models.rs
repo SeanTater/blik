@@ -1,5 +1,5 @@
-use crate::schema::{photos, story, annotation, thumbnail};
-use crate::schema::photos::dsl as p;
+use crate::schema::{media, story, annotation, thumbnail};
+use crate::schema::media::dsl as p;
 use crate::schema::thumbnail::dsl as th;
 use chrono::naive::NaiveDateTime;
 use diesel::prelude::*;
@@ -10,8 +10,8 @@ use std::{collections::HashMap, io::Write, path::Path};
 use sha2::Digest;
 use anyhow::Result;
 #[derive(AsChangeset, Clone, Debug, Identifiable, Insertable, Queryable, QueryableByName, Default)]
-#[table_name = "photos"]
-pub struct Photo {
+#[table_name = "media"]
+pub struct Media {
     pub id: String,
     pub path: String,
     pub date: Option<NaiveDateTime>,
@@ -27,7 +27,7 @@ pub struct Photo {
     pub caption: Option<String>,
 }
 
-impl Photo {
+impl Media {
     /// Read Exif data from a basic image, as a reader
     ///
     /// This could be a file or an IO cursor depending on your use case
@@ -106,7 +106,7 @@ impl Photo {
         &self,
         db: &SqliteConnection
     ) -> bool {
-        p::photos.find(&self.id).first::<Photo>(db).is_ok()
+        p::media.find(&self.id).first::<Media>(db).is_ok()
     }
 
     pub fn save(
@@ -117,11 +117,11 @@ impl Photo {
     ) -> Result<()> {
         // Actually save the file
         if self.exists(db) {
-            bail!("Photo is already indexed.");
+            bail!("Photo/Video is already indexed.");
         }
         let path = basedir.join(&self.path);
         if path.exists() {
-            bail!("Conflict with unindexed photo on disk.");
+            bail!("Conflict with unindexed photo/video on disk.");
         }
         let mut file = std::fs::OpenOptions::new()
             .create_new(true)
@@ -132,14 +132,14 @@ impl Photo {
         // Create a thumbnail
         let thumbnail = self.create_thumbnail(image_slice)?;
         
-        // Index the photo
+        // Index the media
         diesel::insert_into(th::thumbnail)
             .values((
                 th::id.eq(&self.id),
                 th::content.eq(thumbnail)
             ))
             .execute(db)?;
-        diesel::insert_into(p::photos)
+        diesel::insert_into(p::media)
             .values(self)
             .execute(db)?;
         Ok(())
@@ -163,7 +163,7 @@ impl Photo {
     #[cfg(test)]
     pub fn mock(y: i32, mo: u32, da: u32, h: u32, m: u32, s: u32) -> Self {
         use chrono::naive::NaiveDate;
-        Photo {
+        Media {
             id: format!("{}-{}-{}T{}:{}:{}", y, mo, da, h, m, s),
             path: format!(
                 "{}/{:02}/{:02}/IMG{:02}{:02}{:02}.jpg",
@@ -198,8 +198,8 @@ pub struct Story {
     pub description: String,
     pub created_on: NaiveDateTime,
     pub last_updated: NaiveDateTime,
-    pub latest_photo: Option<String>,
-    pub photo_count: i32
+    pub latest_media: Option<String>,
+    pub media_count: i32
 }
 impl Story {
     /// Create a new story by name and description with otherwise default attributes
@@ -210,8 +210,8 @@ impl Story {
             name, title, description,
             created_on: now,
             last_updated: now,
-            latest_photo: None,
-            photo_count: 0
+            latest_media: None,
+            media_count: 0
         }
     }
 
@@ -254,15 +254,15 @@ impl Story {
         Ok(stories)
     }
 
-    /// Get photos related to this story
-    pub fn related_photos(&self, db: &SqliteConnection) -> anyhow::Result<Vec<Photo>> {
-        let photos = p::photos
+    /// Get media related to this story
+    pub fn related_media(&self, db: &SqliteConnection) -> anyhow::Result<Vec<Media>> {
+        let media = p::media
             .filter(p::story.eq(&self.name))
             .load(db)?;
-        Ok(photos)
+        Ok(media)
     }
 
-    /// Check if there is a story by that name (for uploading photos attached to it)
+    /// Check if there is a story by that name (for uploading media attached to it)
     pub fn by_name(db: &SqliteConnection, name: &str) -> anyhow::Result<Story> {
         use crate::schema::story::dsl as st;
         Ok(st::story.find(name).first::<Story>(db)?)
@@ -279,7 +279,7 @@ pub struct Thumbnail {
 #[derive(Debug, Clone, Queryable, QueryableByName)]
 #[table_name = "annotation"]
 pub struct Annotation {
-    pub photo_id: String,
+    pub media_id: String,
     pub name: String,
     pub top: i64,
     pub bottom: i64,
@@ -289,12 +289,12 @@ pub struct Annotation {
 }
 
 pub trait Annotator {
-    fn annotate(&self, photo: &Photo, image: &DynamicImage) -> Annotation;
+    fn annotate(&self, media: &Media, image: &DynamicImage) -> Annotation;
 }
 
 struct ExifCaption;
 impl Annotator for ExifCaption {
-    fn annotate(&self, photo: &Photo, image: &DynamicImage) -> Annotation {
+    fn annotate(&self, media: &Media, image: &DynamicImage) -> Annotation {
         todo!();
     }
 }

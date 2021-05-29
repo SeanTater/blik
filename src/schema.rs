@@ -1,6 +1,6 @@
 table! {
-    annotation (photo_id, name, top, bottom, left, right, details) {
-        photo_id -> Text,
+    annotation (media_id, name, top, bottom, left, right, details) {
+        media_id -> Text,
         name -> Text,
         top -> Integer,
         bottom -> Integer,
@@ -11,7 +11,7 @@ table! {
 }
 
 table! {
-    photos (id) {
+    media (id) {
         id -> Text,
         path -> Text,
         date -> Nullable<Timestamp>,
@@ -35,8 +35,8 @@ table! {
         description -> Text,
         created_on -> Timestamp,
         last_updated -> Timestamp,
-        latest_photo -> Nullable<Text>,
-        photo_count -> Integer,
+        latest_media -> Nullable<Text>,
+        media_count -> Integer,
     }
 }
 
@@ -47,11 +47,12 @@ table! {
     }
 }
 
-joinable!(annotation -> photos (photo_id));
+joinable!(annotation -> media (media_id));
+joinable!(story -> media (latest_media));
 
 allow_tables_to_appear_in_same_query!(
     annotation,
-    photos,
+    media,
     story,
     thumbnail,
 );

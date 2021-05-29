@@ -1,4 +1,4 @@
-use crate::models::Photo;
+use crate::models::Media;
 use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
 
@@ -13,8 +13,8 @@ impl Collection {
         }
     }
 
-    pub fn get_raw_path(&self, photo: &Photo) -> PathBuf {
-        self.basedir.join(&photo.path)
+    pub fn get_raw_path(&self, media: &Media) -> PathBuf {
+        self.basedir.join(&media.path)
     }
 }
 
@@ -24,8 +24,8 @@ pub struct CollectionManager<'t> {
 }
 
 impl<'t> CollectionManager<'t> {
-    pub fn index_photo(&self, image_slice: &[u8], story_name: &str) -> Result<Photo> {
-        let pho = Photo::read_from(&image_slice, story_name).context("Failed reading exif data")?;
+    pub fn index_media(&self, image_slice: &[u8], story_name: &str) -> Result<Media> {
+        let pho = Media::read_from(&image_slice, story_name).context("Failed reading exif data")?;
         pho.save(&self.conn, image_slice, self.basedir)?;
         Ok(pho)
     }

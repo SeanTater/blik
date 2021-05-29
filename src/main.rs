@@ -29,7 +29,7 @@ use std::path::PathBuf;
 use std::process::exit;
 use structopt::StructOpt;
 
-/// Command line interface for rphotos.
+/// Command line interface for Blik.
 #[derive(StructOpt)]
 #[structopt(rename_all = "kebab-case")]
 enum Blik {
@@ -39,7 +39,7 @@ enum Blik {
     Makepublic(makepublic::Makepublic),
     /// Show some statistics from the database
     Stats,
-    /// Run the rphotos web server.
+    /// Run the Blik web server.
     Runserver(server::Args),
 }
 

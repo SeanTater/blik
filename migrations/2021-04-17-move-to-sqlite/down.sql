@@ -1,9 +1,4 @@
-DROP TABLE photos;
-DROP TABLE photo_tags;
-DROP TABLE tags;
-DROP TABLE photo_people;
-DROP TABLE people;
-DROP TABLE photo_places;
-DROP TABLE places;
-DROP TABLE positions;
-DROP TABLE attributions;
+DROP TABLE media;
+DROP TABLE thumbnail;
+DROP TABLE story;
+DROP TABLE annotation;

@@ -1,4 +1,4 @@
-@use crate::models::{Photo, Story};
+@use crate::models::Story;
 @use super::statics::*;
 @use itertools::Itertools;
 @use chrono::Datelike;
@@ -51,7 +51,7 @@
           <!-- Also available: email-item-selected email-item-unread -->
           <div class="email-item email-item-selected pure-g">
             <div class="pure-u">
-                <img width="64" height="64" alt="Latest photo" class="email-avatar" src="/photo/@story.latest_photo.unwrap_or_default()/thumbnail">
+                <img width="64" height="64" alt="Latest photo" class="email-avatar" src="/media/@story.latest_media.unwrap_or_default()/thumbnail">
             </div>
 
             <div class="pure-u-3-4">
@@ -60,7 +60,7 @@
                     @story.title
                   </a>
                 </h4>
-                <h5 class="email-name">@story.photo_count photos</h5>
+                <h5 class="email-name">@story.media_count media</h5>
                 <p class="email-desc">
                   @story.description
                 </p>

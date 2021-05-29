@@ -1,4 +1,4 @@
-use crate::schema::photos::dsl::photos;
+use crate::schema::media::dsl::media;
 use anyhow::Result;
 use diesel::expression::dsl::{count_star, sql};
 use diesel::prelude::*;
@@ -8,22 +8,12 @@ use diesel::sqlite::SqliteConnection;
 pub fn show_stats(db: &SqliteConnection) -> Result<()> {
     println!(
         "There are {} photos in total.",
-        photos.select(count_star()).first::<i64>(db)?,
+        media.select(count_star()).first::<i64>(db)?,
     );
-
-    // Something like this should be possible, I guess?
-    //
-    // use schema::photos::dsl::date;
-    // let year = date_part("year", date).aliased("y");
-    // println!("Count per year: {:?}",
-    //          photos.select((year, count_star()))
-    //              .group_by(year)
-    //              .limit(10)
-    //              .load::<(Option<f64>, i64)>(db));
 
     println!(
         "Count per year: {:?}",
-        photos
+        media
             .select(sql::<(Nullable<Double>, BigInt)>(
                 "strftime('%Y', date) y, count(*)"
             ))

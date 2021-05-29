@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use super::{context::GlobalContext, LoggedIn, BlikDB};
-use crate::models::{Photo, Story};
+use crate::models::{Media, Story};
 use anyhow::Result;
 use diesel::prelude::*;
 use rocket::response::{
@@ -11,7 +11,7 @@ use rocket::response::{
 use rocket::{http::ContentType, Data, State};
 use std::io::Read;
 
-#[get("/photo/<id>/thumbnail")]
+#[get("/media/<id>/thumbnail")]
 pub fn thumbnail(
     _user: LoggedIn,
     db: BlikDB,
@@ -27,16 +27,16 @@ pub fn thumbnail(
     ))
 }
 
-#[get("/photo/<id>")]
+#[get("/media/<id>")]
 pub fn full(
     _user: LoggedIn,
     db: BlikDB,
     globe: State<Arc<GlobalContext>>,
     id: String,
 ) -> Option<Content<Vec<u8>>> {
-    use crate::schema::photos::dsl::photos;
+    use crate::schema::media::dsl::media;
     let db = db.0;
-    let pho = photos.find(&id).first::<Photo>(&db).ok()?;
+    let pho = media.find(&id).first::<Media>(&db).ok()?;
     let pho_path = globe.collection.get_raw_path(&pho);
     let mime = mime_guess::from_path(&pho_path).first_or_octet_stream();
     Some(Content(
@@ -84,7 +84,7 @@ pub fn upload(
             ));
         } else {
             println!("Read image {} bytes long", image_slice.len());
-            messages.push(match globe.collection.manage(&db.0).index_photo(&image_slice, &story_name) {
+            messages.push(match globe.collection.manage(&db.0).index_media(&image_slice, &story_name) {
                 Ok(_) => "Saved image".into(),
                 Err(err) => {
                     success = false;

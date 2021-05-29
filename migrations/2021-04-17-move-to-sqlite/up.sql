@@ -1,7 +1,7 @@
 --
 -- Photos
 --
-CREATE TABLE photos (
+CREATE TABLE media (
     id TEXT NOT NULL PRIMARY KEY,
     path TEXT UNIQUE NOT NULL,
     date TIMESTAMP,
@@ -15,10 +15,10 @@ CREATE TABLE photos (
     make TEXT,
     model TEXT,
     caption TEXT
-);
+) WITHOUT ROWID;
 
-CREATE INDEX photos_date_idx ON photos (date DESC);
-CREATE INDEX photos_story_idx ON photos (story);
+CREATE INDEX media_date_idx ON media (date DESC);
+CREATE INDEX media_story_idx ON media (story);
 
 --
 -- Thumbnails, separated from photos both to make debugging easier
@@ -27,7 +27,7 @@ CREATE INDEX photos_story_idx ON photos (story);
 CREATE TABLE thumbnail (
     id TEXT NOT NULL PRIMARY KEY,
     content BLOB NOT NULL
-);
+) WITHOUT ROWID;
 
 --
 -- Story
@@ -38,32 +38,32 @@ CREATE TABLE story (
     description TEXT NOT NULL,
     created_on TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_updated TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    latest_photo TEXT REFERENCES photo(id),
-    photo_count INTEGER NOT NULL DEFAULT 0
+    latest_media TEXT REFERENCES media(id),
+    media_count INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TRIGGER update_story_on_upload
-AFTER INSERT ON photos FOR EACH ROW
+AFTER INSERT ON media FOR EACH ROW
 BEGIN
     UPDATE story
     SET last_updated = CURRENT_TIMESTAMP,
-        latest_photo = NEW.id,
-        photo_count = photo_count + 1
+        latest_media = NEW.id,
+        media_count = media_count + 1
     WHERE story.name = NEW.story;
 END;
 
 CREATE TRIGGER update_story_on_delete
-AFTER DELETE ON photos FOR EACH ROW
+AFTER DELETE ON media FOR EACH ROW
 BEGIN
     UPDATE story
     SET last_updated = CURRENT_TIMESTAMP,
-        latest_photo = (
-            SELECT id FROM photos
-            WHERE photos.story = OLD.story
+        latest_media = (
+            SELECT id FROM media
+            WHERE media.story = OLD.story
             ORDER BY date DESC
             LIMIT 1
         ),
-        photo_count = photo_count - 1
+        media_count = media_count - 1
     WHERE story.name = OLD.story;
 END;
 
@@ -72,7 +72,7 @@ END;
 --
 CREATE TABLE annotation (
     -- Attached to a specific photo
-    photo_id TEXT NOT NULL REFERENCES photos (id),
+    media_id TEXT NOT NULL REFERENCES media (id),
     -- A type of tag, like "caption"
     name TEXT NOT NULL,
     -- A region the tag applies to
@@ -84,5 +84,5 @@ CREATE TABLE annotation (
     -- so it can be human readable too
     details TEXT,
     -- You can't duplicate all three columns
-    PRIMARY KEY (photo_id, name, top, bottom, left, right, details)
+    PRIMARY KEY (media_id, name, top, bottom, left, right, details)
 ) WITHOUT ROWID;

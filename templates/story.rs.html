@@ -1,5 +1,5 @@
 @use super::base;
-@use crate::models::{Photo, Story};
+@use crate::models::{Media, Story};
 @use diesel::sqlite::SqliteConnection;
 @use rocket::request::FlashMessage;
 @use crate::template_utils::*;
@@ -26,7 +26,7 @@
                     method="POST"
                     enctype="multipart/form-data">
                     <input type="file" name="image" accept="image/*,video/*" multiple class="pure-input-2-3" />
-                    <button type="submit" class="pure-button pure-button-primary" class="pure-u-1-3">Upload photos</button>
+                    <button type="submit" class="pure-button pure-button-primary" class="pure-u-1-3">Upload media</button>
                 </form>
                 <!-- <button class="secondary-button pure-button">Add Photos</button>
                 <button class="secondary-button pure-button">Forward</button>
@@ -38,17 +38,17 @@
             <p>
                 @story.description
             </p>
-            <photo-deck>
-                @for photo in story.related_photos(db).unwrap_or_default() {
+            <media-deck>
+                @for media in story.related_media(db).unwrap_or_default() {
                     <label class="card item expandable">
                         <input type="checkbox" class="hide">
-                        <img src="/photo/@photo.id/thumbnail" alt="Photo @photo.id" />
+                        <img src="/media/@media.id/thumbnail" alt="Photo/Video @media.id" />
                         <extra-drawer>
-                            <lazy-img style="background-image: url(/photo/@photo.id)" />
+                            <lazy-img style="background-image: url(/media/@media.id)" />
                         </extra-drawer>
                     </label>
                 }
-            </photo-deck>
+            </media-deck>
         </div>
     </div>
 })

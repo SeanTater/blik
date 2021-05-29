@@ -44,8 +44,8 @@ impl Makepublic {
 }
 
 pub fn one(db: &SqliteConnection, tpath: &str) -> Result<()> {
-    use crate::schema::photos::dsl::*;
-    match update(photos.filter(path.eq(&tpath)))
+    use crate::schema::media::dsl::*;
+    match update(media.filter(path.eq(&tpath)))
         .set(is_public.eq(true))
         .execute(db)
     {
