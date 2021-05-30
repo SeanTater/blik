@@ -1,4 +1,4 @@
-mod image;
+mod media;
 mod login;
 mod urlstring;
 mod timeline;
@@ -88,9 +88,9 @@ secret_key = \"{code}\"
                 self::login::invite,
                 self::timeline::timeline,
                 self::timeline::timeline_year,
-                self::image::thumbnail,
-                self::image::full,
-                self::image::upload,
+                self::media::thumbnail,
+                self::media::full,
+                self::media::upload,
                 self::story::create,
                 self::story::summary,
                 self::static_file,
