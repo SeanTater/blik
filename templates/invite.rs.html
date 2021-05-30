@@ -4,9 +4,16 @@
 @(db: &SqliteConnection, code: &str)
 
 @:base(db, "invite", {}, {
-    <p>
-      You can use the code <code>@code</code> to login for the next 15 minutes.
-      Please note that only one invitation is valid at any given time, for safety,
-      and it can only be used once.
-    </p>
+    <div class="email-content">
+        <div class="email-content-header">
+            <h1 class="email-content-title">
+                Invite a new member
+            </h1>
+        </div>
+        <div class="email-content-body">
+            You can use the code <code>@code</code> to login for the next 15 minutes.
+            Please note that only one invitation is valid at any given time, for safety,
+            and it can only be used once.
+        </div>
+    </div>
 })

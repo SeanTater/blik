@@ -245,12 +245,28 @@ impl Story {
     }
 
     /// Get the most recent 20 stories from the database
-    pub fn recent(db: &SqliteConnection) -> anyhow::Result<Vec<Story>> {
+    pub fn recent(db: &SqliteConnection, year: Option<i32>) -> anyhow::Result<Vec<Story>> {
         use crate::schema::story::dsl as st;
-        let stories = st::story
-            .order_by(st::created_on.desc())
-            .limit(20)
-            .load(db)?;
+
+        let stories = match year {
+            None => st::story
+                .order_by(st::created_on.desc())
+                .limit(20)
+                .load(db)?,
+            Some(year) => {
+                let start_date = chrono::NaiveDate::from_ymd_opt(year, 1, 1)
+                    .ok_or(anyhow!("Out of range year"))?
+                    .and_hms(0, 0, 0);
+                let end_date = chrono::NaiveDate::from_ymd_opt(year+1, 1, 1)
+                    .ok_or(anyhow!("Out of range year"))?
+                    .and_hms(0, 0, 0);
+                st::story
+                    .filter(st::created_on.ge(start_date))
+                    .filter(st::created_on.lt(end_date))
+                    .order_by(st::created_on.desc())
+                    .load(db)?
+            }
+        };
         Ok(stories)
     }
 

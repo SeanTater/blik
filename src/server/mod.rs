@@ -87,6 +87,7 @@ secret_key = \"{code}\"
                 self::login::logout,
                 self::login::invite,
                 self::timeline::timeline,
+                self::timeline::timeline_year,
                 self::image::thumbnail,
                 self::image::full,
                 self::image::upload,

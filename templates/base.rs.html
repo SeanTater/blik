@@ -30,6 +30,7 @@
             <div class="pure-menu">
                 <ul class="pure-menu-list">
                     <li class="pure-menu-item"><a href="/" class="pure-menu-link">Home</a></li>
+                    <li class="pure-menu-item"><a href="/invite" class="pure-menu-link">Invite</a></li>
                     @for year in Story::all(db).unwrap_or_default().iter().map(|st| st.created_on.year()).unique() {
                       <li class="pure-menu-item"><a href="/year/@year" class="pure-menu-link">@year</a></li>
                     }

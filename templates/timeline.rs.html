@@ -4,13 +4,13 @@
 @use rocket::request::FlashMessage;
 @use crate::template_utils::*;
 
-@(db: &SqliteConnection, flash: Option<FlashMessage>)
+@(db: &SqliteConnection, year: Option<i32>, flash: Option<FlashMessage>)
 
 @:base(db, "Timeline", {}, {
     @for message in flash {
         <div class="card flash-message flash-@message.name()">@message.msg()</div>
     }
-    @for story in &Story::recent(db).unwrap_or(vec![]) {
+    @for story in &Story::recent(db, year).unwrap_or(vec![]) {
         <div class="email-content">
             <div class="email-content-header pure-g">
                 <div class="pure-u-1-2">
