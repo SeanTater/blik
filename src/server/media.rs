@@ -71,7 +71,6 @@ pub fn upload(
         // Even a 100 MB limit may not make sense if we support video later.
 
         let mut image_slice = vec![];
-
         part.data.take(100 << 20).read_to_end(&mut image_slice).ok()?;
         //
         // Read an image
@@ -84,7 +83,9 @@ pub fn upload(
             ));
         } else {
             println!("Read image {} bytes long", image_slice.len());
-            messages.push(match globe.collection.manage(&db.0).index_media(&image_slice, &story_name) {
+            messages.push(match globe.collection
+                    .manage(&db.0)
+                    .index_media(&part.headers.content_type?, &image_slice, &story_name) {
                 Ok(_) => "Saved image".into(),
                 Err(err) => {
                     success = false;

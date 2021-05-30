@@ -21,6 +21,7 @@ mod myexif;
 mod schema;
 mod server;
 mod template_utils;
+mod video;
 
 use crate::adm::stats::show_stats;
 use crate::adm::makepublic;
