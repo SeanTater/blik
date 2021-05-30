@@ -1,15 +1,16 @@
-use crate::models::Media;
+use crate::models::{Media, Thumbnail};
 use anyhow::{Context, Result};
+use diesel::SqliteConnection;
 use std::path::{Path, PathBuf};
 
 pub struct Collection {
     pub basedir: PathBuf,
 }
 impl Collection {
-    pub fn manage<'t>(&'t self, conn: &'t diesel::SqliteConnection) -> CollectionManager<'t> {
+    pub fn manage<'t>(&'t self, db: &'t diesel::SqliteConnection) -> CollectionManager<'t> {
         CollectionManager {
             basedir: &self.basedir,
-            conn
+            db
         }
     }
 
@@ -20,13 +21,22 @@ impl Collection {
 
 pub struct CollectionManager<'t> {
     basedir: &'t Path,
-    conn: &'t diesel::SqliteConnection
+    db: &'t diesel::SqliteConnection
 }
 
 impl<'t> CollectionManager<'t> {
     pub fn index_media(&self, image_slice: &[u8], story_name: &str) -> Result<Media> {
-        let pho = Media::read_from(&image_slice, story_name).context("Failed reading exif data")?;
-        pho.save(&self.conn, image_slice, self.basedir)?;
-        Ok(pho)
+        if image_slice.len() == 0 {
+            bail!("Uploaded image is empty.");
+        }
+        let media = Media::read_from_image(&image_slice, story_name)
+            .context("Failed to read the image's exif data.")?;
+        media.save(self.db, image_slice, self.basedir)?;
+
+        // Create a thumbnail
+        crate::image
+            ::create_thumbnail(&media, image_slice)?
+            .save(self.db)?;
+        Ok(media)
     }
 }

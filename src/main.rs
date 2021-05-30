@@ -15,6 +15,7 @@ extern crate diesel_migrations;
 mod adm;
 mod collection;
 mod dbopt;
+mod image;
 mod models;
 mod myexif;
 mod schema;

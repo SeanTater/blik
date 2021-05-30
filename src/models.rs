@@ -28,78 +28,12 @@ pub struct Media {
 }
 
 impl Media {
-    /// Read Exif data from a basic image, as a reader
+    /// Read Exif data from a basic image stored compressed in memory as a slice
     ///
-    /// This could be a file or an IO cursor depending on your use case
-    pub fn read_from(image_slice: &[u8], story: &str) -> anyhow::Result<Self> {
-        use crate::myexif::*;
-        use exif::*;
-
-        // Start with an empty photo
-        let mut result = Self::default();
-        // Fill the basics
-        result.id = format!("{:x}", sha2::Sha256::digest(&image_slice));
-
-        // Width and height are different; we always read the image.
-        {
-            let image = image::load_from_memory(&image_slice)?;
-            result.width = image.width() as i32;
-            result.height = image.height() as i32;
-        }
-        let mut cursor = std::io::Cursor::new(image_slice);
-        let exif_map = match Reader::new().read_from_container(&mut cursor) {
-            Ok(ex) => ex
-                .fields()
-                .filter(|f| f.ifd_num == In::PRIMARY)
-                .filter_map(|f| Some((f.tag, f.clone())))
-                .collect(),
-            Err(x) => {
-                log::warn!("Couldn't read EXIF: {}", x);
-                HashMap::new()
-            }
-        };
-        result.date = exif_map.get(&Tag::DateTimeOriginal).and_then(|f| is_datetime(f))
-            .or_else(|| is_datetime(exif_map.get(&Tag::DateTime)?))
-            .or_else(|| is_datetime(exif_map.get(&Tag::DateTimeDigitized)?));
-        result.make = exif_map
-            .get(&Tag::Make)
-            .and_then(|f| is_string(f));
-        result.model = exif_map
-            .get(&Tag::Model)
-            .and_then(|f| is_string(f));
-        result.rotation = exif_map
-            .get(&Tag::Orientation)
-            .and_then(|f| is_u32(f))
-            .map(|value| match value {
-                // EXIF has a funny way of encoding rotations
-                3 => 180,
-                6 => 90,
-                8 => 270,
-                1 | 0 | _ => 0,
-            })
-            .unwrap_or(0) as i16;
-        result.lat = exif_map
-            .get(&Tag::GPSLatitude)
-            .and_then(|f| is_lat_long(f));
-        result.lon = exif_map
-            .get(&Tag::GPSLongitude)
-            .and_then(|f| is_lat_long(f));
-        result.caption = exif_map
-            .get(&Tag::ImageDescription)
-            .and_then(|f| is_string(f));
-        result.story = story.into();
-        
-
-        let ext = *image::guess_format(image_slice)?
-            .extensions_str()
-            .first()
-            .unwrap_or(&"image");
-        result.path = match result.date {
-            Some(d) => format!("{} {}.{}", d, result.id, ext),
-            None => result.id.clone()
-        };
-        
-        Ok(result)
+    /// Images and videos are handled a bit differently, and this is a convenience method that
+    /// in turn calls the image-specific annotation pipeline.
+    pub fn read_from_image(image_slice: &[u8], story: &str) -> anyhow::Result<Self> {
+        crate::image::read_media_from(image_slice, story)
     }
 
     pub fn exists(
@@ -129,35 +63,10 @@ impl Media {
             .open(path)?;
         file.write_all(image_slice)?;
 
-        // Create a thumbnail
-        let thumbnail = self.create_thumbnail(image_slice)?;
-        
-        // Index the media
-        diesel::insert_into(th::thumbnail)
-            .values((
-                th::id.eq(&self.id),
-                th::content.eq(thumbnail)
-            ))
-            .execute(db)?;
         diesel::insert_into(p::media)
             .values(self)
             .execute(db)?;
         Ok(())
-    }
-
-    fn create_thumbnail(&self, image_bytes: &[u8]) -> Result<Vec<u8>> {
-        let mut thumbnail_buf = std::io::Cursor::new(vec![]);
-        let thumbnail = image::load_from_memory(&image_bytes)?
-            .thumbnail(256, 256);
-        // Rotate if necessary before saving
-        let thumbnail = match self.rotation {
-            90 | -270 => thumbnail.rotate90(),
-            180 | -180  => thumbnail.rotate180(),
-            270 | -90 => thumbnail.rotate270(),
-            _ => thumbnail
-        };
-        thumbnail.write_to(&mut thumbnail_buf, image::ImageOutputFormat::Jpeg(80))?;
-        Ok(thumbnail_buf.into_inner())
     }
 
     #[cfg(test)]
@@ -290,6 +199,19 @@ impl Story {
 pub struct Thumbnail {
     pub id: String,
     pub content: Vec<u8>,
+}
+
+impl Thumbnail {
+    pub fn save(&self, db: &SqliteConnection) -> Result<()> {
+        // Index the media
+        diesel::insert_into(th::thumbnail)
+            .values((
+                th::id.eq(&self.id),
+                th::content.eq(&self.content)
+            ))
+            .execute(db)?;
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Queryable, QueryableByName)]
