@@ -5,9 +5,8 @@ use chrono::naive::NaiveDateTime;
 use diesel::prelude::*;
 use diesel::result::Error;
 use diesel::sqlite::SqliteConnection;
-use image::{DynamicImage, GenericImageView};
-use std::{collections::HashMap, io::Write, path::Path};
-use sha2::Digest;
+use image::DynamicImage;
+use std::{io::Write, path::Path};
 use anyhow::Result;
 #[derive(AsChangeset, Clone, Debug, Identifiable, Insertable, Queryable, QueryableByName, Default)]
 #[table_name = "media"]
@@ -28,14 +27,6 @@ pub struct Media {
 }
 
 impl Media {
-    /// Read Exif data from a basic image stored compressed in memory as a slice
-    ///
-    /// Images and videos are handled a bit differently, and this is a convenience method that
-    /// in turn calls the image-specific annotation pipeline.
-    pub fn read_from_image(image_slice: &[u8], story: &str) -> anyhow::Result<Self> {
-        crate::image::read_media_from(image_slice, story)
-    }
-
     pub fn exists(
         &self,
         db: &SqliteConnection

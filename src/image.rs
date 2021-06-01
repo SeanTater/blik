@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use image::GenericImageView;
+use image::{GenericImageView, ImageEncoder};
 use sha2::Digest;
 use anyhow::Result;
 
@@ -9,22 +9,22 @@ use crate::models::{Media, Thumbnail};
 /// Read Exif data from a basic image, as a reader
 ///
 /// This could be a file or an IO cursor depending on your use case
-pub fn read_media_from(image_slice: &[u8], story: &str) -> anyhow::Result<Media> {
+pub fn read_media_from(image_bytes: &[u8], story: &str) -> anyhow::Result<Media> {
     use crate::myexif::*;
     use exif::*;
 
     // Start with an empty photo
     let mut result = Media::default();
     // Fill the basics
-    result.id = format!("{:x}", sha2::Sha256::digest(&image_slice));
+    result.id = format!("{:x}", sha2::Sha256::digest(&image_bytes));
 
     // Width and height are different; we always read the image.
     {
-        let image = image::load_from_memory(&image_slice)?;
+        let image = image::load_from_memory(&image_bytes)?;
         result.width = image.width() as i32;
         result.height = image.height() as i32;
     }
-    let mut cursor = std::io::Cursor::new(image_slice);
+    let mut cursor = std::io::Cursor::new(image_bytes);
     let exif_map = match Reader::new().read_from_container(&mut cursor) {
         Ok(ex) => ex
             .fields()
@@ -68,7 +68,7 @@ pub fn read_media_from(image_slice: &[u8], story: &str) -> anyhow::Result<Media>
     result.story = story.into();
     
 
-    let ext = *image::guess_format(image_slice)?
+    let ext = *image::guess_format(image_bytes)?
         .extensions_str()
         .first()
         .unwrap_or(&"image");
@@ -82,17 +82,32 @@ pub fn read_media_from(image_slice: &[u8], story: &str) -> anyhow::Result<Media>
 
 /// Create a thumbnail from a compressed image already read into memory
 pub fn create_thumbnail(media: &Media, image_bytes: &[u8]) -> Result<Thumbnail> {
-    let mut thumbnail_buf = std::io::Cursor::new(vec![]);
-    let thumbnail = image::load_from_memory(&image_bytes)?
-        .thumbnail(256, 256);
+    let frame = image::load_from_memory(&image_bytes)?;
+    let height = 256;
+    let width = ((256 * frame.width()) / frame.height()).min(2048);
+    let thumbnail = frame.thumbnail_exact(width, height);
     // Rotate if necessary before saving
     let thumbnail = match media.rotation {
         90 | -270 => thumbnail.rotate90(),
         180 | -180  => thumbnail.rotate180(),
         270 | -90 => thumbnail.rotate270(),
         _ => thumbnail
-    };
-    thumbnail.write_to(&mut thumbnail_buf, image::ImageOutputFormat::Jpeg(80))?;
+    }.into_rgba8();
+    let mut thumbnail_buf = std::io::Cursor::new(vec![]);
+
+    // One day, when AVIF is in more browsers, we can do this
+    // (just be sure to enable avif in the image crate)
+    //
+    // let image_encoder = image::codecs::avif::AvifEncoder
+    //     ::new_with_speed_quality(&mut thumbnail_buf, 5, 75);
+    let image_encoder = image::codecs::jpeg::JpegEncoder
+            ::new_with_quality(&mut thumbnail_buf, 70);
+    image_encoder.write_image(
+        thumbnail.as_flat_samples().samples,
+        thumbnail.width(),
+        thumbnail.height(),
+        image::ColorType::Rgba8
+    )?;
     let content = thumbnail_buf.into_inner();
     Ok(Thumbnail{id: media.id.clone(), content})
 }

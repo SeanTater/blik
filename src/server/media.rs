@@ -22,7 +22,7 @@ pub fn thumbnail(
     let thumb = thumbnail.find(&id).first::<crate::models::Thumbnail>(&db)?;
 
     Ok(Content(
-        rocket::http::ContentType::JPEG,
+        rocket::http::ContentType::new("image", "avif"),
         thumb.content.clone(),
     ))
 }

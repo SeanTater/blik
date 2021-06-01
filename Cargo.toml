@@ -13,6 +13,7 @@ ructe = { version = "0.13", features = ["sass"] }
 chrono = "0.4" # Must match version used by diesel
 dotenv = "0.15"
 env_logger = "0.8"
+# TODO: Enable avif feature when browser support improves
 image = "0.23"
 kamadak-exif = "0.5"
 log = "0.4"
@@ -36,6 +37,7 @@ base64 = "0.13.0"
 diesel_migrations = "1.4" # We use this to bundle the migrations with the binary
 webbrowser = "0.5"
 ac-ffmpeg = "0.17.0"
+xdg-mime = "0.3.3"
 
 [dependencies.diesel]
 default-features = false

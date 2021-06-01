@@ -26,20 +26,32 @@ pub struct CollectionManager<'t> {
 }
 
 impl<'t> CollectionManager<'t> {
-    pub fn index_media(&self, mime_hint: &Mime, image_slice: &[u8], story_name: &str) -> Result<Media> {
-        if image_slice.len() == 0 {
+    pub fn index_media(&self, mime_hint: &Mime, file_bytes: &[u8], story_name: &str) -> Result<Media> {
+        if file_bytes.len() == 0 {
             bail!("Uploaded image is empty.");
         }
         match mime_hint.type_() {
             mime::IMAGE => {
-                let media = Media::read_from_image(&image_slice, story_name)
+                let media = crate::image::read_media_from(&file_bytes, story_name)
                     .context("Failed to read the image's exif data.")?;
-                media.save(self.db, image_slice, self.basedir)?;
+                media.save(self.db, file_bytes, self.basedir)?;
 
                 // Create a thumbnail
                 crate::image
-                    ::create_thumbnail(&media, image_slice)?
+                    ::create_thumbnail(&media, file_bytes)?
                     .save(self.db)?;
+                Ok(media)
+            }
+            mime::VIDEO => {
+                let mut vhandle = crate::video::VideoHandle::open(&file_bytes)?;
+                let media = vhandle.read_media(story_name)?;
+
+                // Create a thumbnail
+                let thumbnail = vhandle.create_thumbnail(&media)?;
+                thumbnail.save(self.db)?;
+
+                // Save *after* everything else worked
+                media.save(self.db, file_bytes, self.basedir)?;
                 Ok(media)
             }
             _ => Err(anyhow!("Videos are not supported yet"))
