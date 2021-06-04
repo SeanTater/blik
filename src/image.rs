@@ -109,5 +109,9 @@ pub fn create_thumbnail(media: &Media, image_bytes: &[u8]) -> Result<Thumbnail> 
         image::ColorType::Rgba8
     )?;
     let content = thumbnail_buf.into_inner();
-    Ok(Thumbnail{id: media.id.clone(), content})
+    Ok(Thumbnail{
+        id: media.id.clone(),
+        content,
+        mimetype: "image/jpeg".into()
+    })
 }

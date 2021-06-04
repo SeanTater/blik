@@ -32,8 +32,9 @@ impl<'t> CollectionManager<'t> {
         }
         match mime_hint.type_() {
             mime::IMAGE => {
-                let media = crate::image::read_media_from(&file_bytes, story_name)
+                let mut media = crate::image::read_media_from(&file_bytes, story_name)
                     .context("Failed to read the image's exif data.")?;
+                media.mimetype = mime_hint.essence_str().into();
                 media.save(self.db, file_bytes, self.basedir)?;
 
                 // Create a thumbnail
@@ -44,13 +45,14 @@ impl<'t> CollectionManager<'t> {
             }
             mime::VIDEO => {
                 let mut vhandle = crate::video::VideoHandle::open(&file_bytes)?;
-                let media = vhandle.read_media(story_name)?;
+                let mut media = vhandle.read_media(story_name)?;
 
                 // Create a thumbnail
                 let thumbnail = vhandle.create_thumbnail(&media)?;
                 thumbnail.save(self.db)?;
 
                 // Save *after* everything else worked
+                media.mimetype = mime_hint.essence_str().into();
                 media.save(self.db, file_bytes, self.basedir)?;
                 Ok(media)
             }

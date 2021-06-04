@@ -23,8 +23,6 @@ mod server;
 mod template_utils;
 mod video;
 
-use crate::adm::stats::show_stats;
-use crate::adm::makepublic;
 use anyhow::Result;
 use dotenv::dotenv;
 use std::path::PathBuf;
@@ -38,9 +36,11 @@ enum Blik {
     /// Make specific image(s) public.
     ///
     /// The image path(s) are relative to the image root.
-    Makepublic(makepublic::Makepublic),
+    Makepublic(adm::makepublic::Makepublic),
     /// Show some statistics from the database
     Stats,
+    /// Migrate the database
+    Migrate,
     /// Run the Blik web server.
     Runserver(server::Args),
 }
@@ -69,7 +69,8 @@ async fn main() {
 async fn run(args: &Blik) -> Result<()> {
     match args {
         Blik::Makepublic(cmd) => cmd.run(),
-        Blik::Stats => show_stats(&dbopt::connect()?),
+        Blik::Stats => adm::stats::show_stats(&dbopt::connect()?),
+        Blik::Migrate => adm::migrate::migrate(),
         Blik::Runserver(ra) => server::run(ra).await,
     }
 }

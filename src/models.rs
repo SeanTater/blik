@@ -24,6 +24,7 @@ pub struct Media {
     pub make: Option<String>,
     pub model: Option<String>,
     pub caption: Option<String>,
+    pub mimetype: String
 }
 
 impl Media {
@@ -79,7 +80,8 @@ impl Media {
             lon: None,
             make: None,
             model: None,
-            caption: None
+            caption: None,
+            mimetype: "image/jpeg".into()
         }
     }
 }
@@ -190,6 +192,7 @@ impl Story {
 pub struct Thumbnail {
     pub id: String,
     pub content: Vec<u8>,
+    pub mimetype: String
 }
 
 impl Thumbnail {

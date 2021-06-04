@@ -25,6 +25,7 @@ table! {
         make -> Nullable<Text>,
         model -> Nullable<Text>,
         caption -> Nullable<Text>,
+        mimetype -> Text,
     }
 }
 
@@ -44,6 +45,7 @@ table! {
     thumbnail (id) {
         id -> Text,
         content -> Binary,
+        mimetype -> Text,
     }
 }
 

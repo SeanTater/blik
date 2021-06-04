@@ -42,10 +42,18 @@
                 @for media in story.related_media(db).unwrap_or_default() {
                     <label class="card item expandable">
                         <input type="checkbox" class="hide">
-                        <img src="/media/@media.id/thumbnail" alt="Photo/Video @media.id" />
-                        <extra-drawer>
-                            <lazy-img style="background-image: url(/media/@media.id)" />
-                        </extra-drawer>
+                        @if media.mimetype.starts_with("image") {
+                            <img src="/media/@media.id/thumbnail" alt="Photo/Video @media.id" />
+                            <extra-drawer>
+                                <lazy-img style="background-image: url(/media/@media.id)" />
+                            </extra-drawer>
+                        }
+                        @if media.mimetype.starts_with("video") {
+                            <video controls poster="/media/@media.id/thumbnail">
+                                <source src="/media/@media.id"
+                                        type="@media.mimetype">
+                            </video>
+                        }
                     </label>
                 }
             </media-deck>

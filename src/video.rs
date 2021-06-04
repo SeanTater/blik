@@ -235,7 +235,8 @@ impl<'t> VideoHandle<'t> {
         
         Ok(Thumbnail{
             id: media.id.clone(),
-            content: image_serialized.into_inner()
+            content: image_serialized.into_inner(),
+            mimetype: "image/jpeg".into()
         })
     }
 }

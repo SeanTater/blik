@@ -65,7 +65,7 @@ secret_key = \"{code}\"
 secret_key = \"{code}\"
 
 ", code=code))?;
-        crate::dbopt::initial_setup()?;
+        crate::dbopt::run_migrations()?;
         println!("Done! You can see your new app at localhost:8000.");
         let url = format!("http://localhost:8000/login/{}", globe.generate_login_token(15));
         match webbrowser::open(&url) {

@@ -11,7 +11,7 @@ pub fn connect() -> Result<SqliteConnection, ConnectionError> {
     Ok(db)
 }
 
-pub fn initial_setup() -> Result<()> {
+pub fn run_migrations() -> Result<()> {
     log::warn!("Running database migrations");
     embedded_migrations::run(&connect()?)?;
     Ok(())
