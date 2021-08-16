@@ -176,6 +176,7 @@ impl Story {
     pub fn related_media(&self, db: &SqliteConnection) -> anyhow::Result<Vec<Media>> {
         let media = p::media
             .filter(p::story.eq(&self.name))
+            .order_by(p::date)
             .load(db)?;
         Ok(media)
     }

@@ -71,14 +71,14 @@ pub fn upload(
         // Even a 100 MB limit may not make sense if we support video later.
 
         let mut image_slice = vec![];
-        part.data.take(100 << 20).read_to_end(&mut image_slice).ok()?;
+        part.data.take(1 << 30).read_to_end(&mut image_slice).ok()?;
         //
         // Read an image
         //
-        if image_slice.len() == 100 << 20 {
+        if image_slice.len() == 1 << 30 {
             success = false;
             messages.push(format!(
-                "Image {} is too large: it needs to be under 100 MB per image",
+                "Image {} is too large: it needs to be under 1 GB per image",
                 part.headers.filename.unwrap_or("untitled".to_string())
             ));
         } else {
